@@ -15,6 +15,8 @@ struct sub_metric_unit {
     enum        data_type t;
     uint32_t    size;
     char        unit[8];
+    void        (*del_sub_metric_safely)(struct sub_metric_unit *subunit);
+    void        (*del_sub_metric)(struct sub_metric_unit *subunit);
     int32_t     (*update_data)(struct sub_metric_unit *);
     void        (*do_update)(void *);
     char        data[0];
@@ -27,8 +29,11 @@ struct metric_unit {
     char        metric_description[METRIC_DESCRIPTION_LEN];
     pthread_mutex_t updating;
     pthread_rwlock_t unit_lock;
+    pthread_t   update_id;
     void        (*add_sub_metric)(struct metric_unit *, struct sub_metric_unit *);
     void        (*run_sub_metric)(struct metric_unit *);
+    void        (*del_metric_safely)(struct metric_unit *unit);
+    void        (*del_metric)(struct metric_unit *unit);
     time_t      last_update_time;
     time_t      expire_time;
 };

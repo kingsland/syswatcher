@@ -8,6 +8,13 @@ struct sub_metric_unit *make_subunit(char *name,
         char *description, int32_t run_time,
         enum data_type t, uint32_t size, char *unit,
         void (*update)(void *));
+void free_subunit(struct sub_metric_unit *subunit);
+void _add_sub_metric(struct metric_unit *unit, struct sub_metric_unit *subunit);
+void _destroy_unit(struct metric_unit *unit);
+void _destroy_unit_safely(struct metric_unit *unit);
+void _destroy_subunit(struct sub_metric_unit *subunit);
+void _free_subunit(struct sub_metric_unit *subunit);
+
 void *do_run_sub_metric(void *arg)
 {
     struct metric_unit *unit = (struct metric_unit *)arg;
@@ -17,6 +24,12 @@ void *do_run_sub_metric(void *arg)
     struct sub_metric_unit *subunit;
     list_for_each(pos, head) {
         subunit = container_of(pos, struct sub_metric_unit, sub_node);
+        if (subunit->run_time == 0) {
+            continue;
+        }
+        if (subunit->run_time != -1) {
+            subunit->run_time--;
+        }
         if (subunit->update_data != NULL) {
             subunit->update_data(subunit);
         }
@@ -32,10 +45,9 @@ void _run_sub_metric(struct metric_unit *unit)
     pthread_rwlock_wrlock(&(unit->unit_lock));
     ret = pthread_mutex_trylock(&(unit->updating));
     if (ret == 0) {
-        pthread_t id;
         pthread_mutex_unlock(&(unit->updating));
         unit->last_update_time = time(NULL);
-        pthread_create(&id, NULL, do_run_sub_metric, unit);
+        pthread_create(&(unit->update_id), NULL, do_run_sub_metric, unit);
     } else {
         printf("not finish, skip %s\n", unit->metric_name);
     }
@@ -63,7 +75,7 @@ void create_sub_metric_chain(struct metric_unit *unit)
     struct sub_metric_unit *subunit;
     char *name = "cpu_name";
     char *desc = "the cpu name of /proc/cpuinfo";
-    subunit = make_subunit(name, desc, -1, M_STRING, 64, NULL, cpu_name_update);
+    subunit = make_subunit(name, desc, 1, M_STRING, 64, NULL, cpu_name_update);
     unit->add_sub_metric(unit, subunit);
     name = "cpu_freq";
     desc = "cpu  frequency";
@@ -115,6 +127,8 @@ struct metric_unit *make_unit(void)
     pthread_mutex_init(&(unit->updating), NULL);
     pthread_rwlock_init(&(unit->unit_lock), NULL);
     unit->add_sub_metric = _add_sub_metric;
+    unit->del_metric = _destroy_unit;
+    unit->del_metric_safely = _destroy_unit_safely;
     unit->run_sub_metric = _run_sub_metric;
     unit->last_update_time = 0;
     unit->expire_time = 0;
@@ -144,21 +158,61 @@ struct sub_metric_unit *make_subunit(char *name,
     if (unit != NULL) {
         strcpy(subunit->unit, unit);
     }
+    subunit->del_sub_metric = _destroy_subunit;
+    subunit->del_sub_metric_safely = _free_subunit;
     subunit->do_update = update;
     subunit->update_data = _update_data;
     return subunit;
 }
 
-void destroy_unit(struct metric_unit *unit)
+void _destroy_unit_safely(struct metric_unit *unit)
 {
-    //delete all subunit
+    //this func may be block, but we should use this;
+    struct list_head *pos, *n;
+    struct sub_metric_unit *subunit;
+    list_for_each_safe(pos, n, &(unit->sub_node_head)) {
+        //free all the sub metrics
+        subunit = container_of(pos, struct sub_metric_unit, sub_node);
+        //printf("  |-free sub metric: %s\n", subunit->sub_metric_name);
+        subunit->del_sub_metric_safely(subunit);
+    }
+
     pthread_mutex_destroy(&(unit->updating));
     pthread_rwlock_destroy(&(unit->unit_lock));
     free(unit);
     unit = NULL;
 }
 
-void destroy_subunit(struct sub_metric_unit *subunit) {
+void _destroy_unit(struct metric_unit *unit)
+{
+    //we use this only at exit.
+    struct list_head *pos, *n;
+    struct sub_metric_unit *subunit;
+    printf("metric: %s\n", unit->metric_name);
+    list_for_each_safe(pos, n, &(unit->sub_node_head)) {
+        //free all the sub metrics
+        subunit = container_of(pos, struct sub_metric_unit, sub_node);
+        printf("  |-sub metric: %s\n", subunit->sub_metric_name);
+        subunit->del_sub_metric(subunit);
+    }
+
+    pthread_mutex_destroy(&(unit->updating));
+    pthread_rwlock_destroy(&(unit->unit_lock));
+    free(unit);
+    unit = NULL;
+}
+
+void _free_subunit(struct sub_metric_unit *subunit)
+{
+    //handler this gently
+    pthread_rwlock_destroy(&(subunit->sub_unit_lock));
+    //free thread
+    free(subunit);
+    subunit = NULL;
+}
+
+void _destroy_subunit(struct sub_metric_unit *subunit)
+{
     pthread_rwlock_destroy(&(subunit->sub_unit_lock));
     free(subunit);
     subunit = NULL;
