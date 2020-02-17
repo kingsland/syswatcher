@@ -40,11 +40,15 @@ struct metric_unit {
 
 #define TRAVERSAL_INTERVAL  (2)
 
-struct list_head *metrics_head;
-pthread_t traversal_thread_id;
-struct list_head *create_metrics_chain(void);
-void destroy_unit(struct metric_unit *unit);
-void destroy_subunit(struct sub_metric_unit *subunit);
+struct syswatcher {
+    struct list_head *metrics_head;
+    pthread_t traversal_thread_id;
+    void (*traversal_metric_units)(void);
+    struct list_head *(*create_metrics_chain)(void);
+};
+
+void init_syswatcher(struct syswatcher *watcher);
+
+struct syswatcher watcher;
 void list_metric(void);
-void traversal_metric_units(void);
 #endif  //end of METRIC_H

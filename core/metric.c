@@ -36,7 +36,7 @@ void *do_run_sub_metric(void *arg)
     }
 
     pthread_mutex_unlock(&(unit->updating));
-    return NULL;
+    pthread_exit(NULL);
 }
 
 void _run_sub_metric(struct metric_unit *unit)
@@ -83,7 +83,7 @@ void create_sub_metric_chain(struct metric_unit *unit)
     unit->add_sub_metric(unit, subunit);
 }
 
-struct list_head *create_metrics_chain(void)
+struct list_head *_create_metrics_chain(void)
 {
     int count = 4;
     struct metric_unit *unit;
@@ -112,7 +112,7 @@ void list_metric(void)
 {
     struct list_head *pos;
     struct metric_unit *unit;
-    list_for_each(pos, metrics_head) {
+    list_for_each(pos, watcher.metrics_head) {
         unit = container_of(pos, struct metric_unit, node);
         metric_info(unit);
     }
@@ -232,7 +232,12 @@ void *do_traversal_metric_units(void *arg) {
     }
 }
 
-void traversal_metric_units(void) {
-    pthread_create(&traversal_thread_id, NULL, do_traversal_metric_units, metrics_head);
-    pthread_join(traversal_thread_id, NULL);
+void _traversal_metric_units(void) {
+    pthread_create(&(watcher.traversal_thread_id), NULL, do_traversal_metric_units, watcher.metrics_head);
+    pthread_join(watcher.traversal_thread_id, NULL);
+}
+
+void init_syswatcher(struct syswatcher *watcher) {
+    watcher->traversal_metric_units = _traversal_metric_units;
+    watcher->create_metrics_chain = _create_metrics_chain;
 }
