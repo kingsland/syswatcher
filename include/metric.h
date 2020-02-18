@@ -8,25 +8,23 @@
 
 struct sub_metric_unit {
     struct      list_head sub_node;
-    char        sub_metric_name[METRIC_NAME_LEN];
-    char        sub_metric_description[METRIC_DESCRIPTION_LEN];
+    char        sub_metric_name[METRIC_NAME_LENGTH];
+    char        sub_metric_description[METRIC_DESC_LENGTH];
     int32_t     run_time;                   //infinite -1
     pthread_rwlock_t sub_unit_lock;
-    enum        data_type t;
-    uint32_t    size;
-    char        unit[8];
+    int         data_num;
+    mate_t      *data;
     void        (*del_sub_metric_safely)(struct sub_metric_unit *subunit);
     void        (*del_sub_metric)(struct sub_metric_unit *subunit);
     int32_t     (*update_data)(struct sub_metric_unit *);
     void        (*do_update)(void *);
-    char        data[0];
 };
 
 struct metric_unit {
     struct      list_head node;
     struct      list_head sub_node_head;
-    char        metric_name[METRIC_NAME_LEN];
-    char        metric_description[METRIC_DESCRIPTION_LEN];
+    char        metric_name[METRIC_NAME_LENGTH];
+    char        metric_description[METRIC_DESC_LENGTH];
     pthread_mutex_t updating;
     pthread_rwlock_t unit_lock;
     pthread_t   update_id;
@@ -40,11 +38,17 @@ struct metric_unit {
 
 #define TRAVERSAL_INTERVAL  (2)
 
-struct list_head *metrics_head;
-pthread_t traversal_thread_id;
-struct list_head *create_metrics_chain(void);
-void destroy_unit(struct metric_unit *unit);
-void destroy_subunit(struct sub_metric_unit *subunit);
+struct syswatcher {
+    struct list_head *metrics_head;
+    int (*add_metric)(plugin_channel_t *plugin_metrics);
+    int (*del_metric)(unsigned long long id);
+    pthread_t traversal_thread_id;
+    void (*traversal_metric_units)(void);
+    struct list_head *(*create_metrics_chain)(void);
+};
+
+void init_syswatcher(struct syswatcher *watcher);
+
+struct syswatcher watcher;
 void list_metric(void);
-void traversal_metric_units(void);
 #endif  //end of METRIC_H

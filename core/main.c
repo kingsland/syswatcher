@@ -24,6 +24,7 @@ int
 main() {
     printf("syswatcher core init\n");
     signal_register();
-    metrics_head = create_metrics_chain(); //from config file
-    traversal_metric_units();
+    init_syswatcher(&watcher);
+    watcher.metrics_head = watcher.create_metrics_chain(); //from config file
+    watcher.traversal_metric_units();
 }
