@@ -6,20 +6,25 @@
 #include <defs.h>
 #include <pthread.h>
 
+typedef struct mate_t {
+    char        name[16];
+    char        unit[16];
+    enum        data_type t;
+    union       val_t val;
+} mate_t;
+
 struct sub_metric_unit {
     struct      list_head sub_node;
     char        sub_metric_name[METRIC_NAME_LEN];
     char        sub_metric_description[METRIC_DESCRIPTION_LEN];
     int32_t     run_time;                   //infinite -1
     pthread_rwlock_t sub_unit_lock;
-    enum        data_type t;
-    uint32_t    size;
-    char        unit[8];
+    int         data_num;
+    mate_t      *data;
     void        (*del_sub_metric_safely)(struct sub_metric_unit *subunit);
     void        (*del_sub_metric)(struct sub_metric_unit *subunit);
     int32_t     (*update_data)(struct sub_metric_unit *);
     void        (*do_update)(void *);
-    char        data[0];
 };
 
 struct metric_unit {

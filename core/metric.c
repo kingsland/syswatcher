@@ -6,12 +6,11 @@
 struct metric_unit *make_unit(void);
 struct sub_metric_unit *make_subunit(char *name,
         char *description, int32_t run_time,
-        enum data_type t, uint32_t size, char *unit,
-        void (*update)(void *));
+        int data_num, mate_t *data, void (*update)(void *));
 void free_subunit(struct sub_metric_unit *subunit);
 void _add_sub_metric(struct metric_unit *unit, struct sub_metric_unit *subunit);
-void _destroy_unit(struct metric_unit *unit);
-void _destroy_unit_safely(struct metric_unit *unit);
+void _del_metric(struct metric_unit *unit);
+void _del_metric_safely(struct metric_unit *unit);
 void _destroy_subunit(struct sub_metric_unit *subunit);
 void _free_subunit(struct sub_metric_unit *subunit);
 
@@ -64,7 +63,7 @@ void cpu_name_update(void *data) {
     printf("%s %d\n", __func__, __LINE__);
 }
 
-void cpu_freq_update(void *data) {
+void cpu_load_update(void *data) {
     float freq = 3.4;
     memcpy(data, &freq, sizeof(freq));
     printf("%s %d\n", __func__, __LINE__);
@@ -73,13 +72,15 @@ void cpu_freq_update(void *data) {
 void create_sub_metric_chain(struct metric_unit *unit)
 {
     struct sub_metric_unit *subunit;
-    char *name = "cpu_name";
-    char *desc = "the cpu name of /proc/cpuinfo";
-    subunit = make_subunit(name, desc, 1, M_STRING, 64, NULL, cpu_name_update);
+    char *name = "cpu generic information";
+    char *desc = "cpu name, frequency...";
+    mate_t *data = (mate_t *)malloc(sizeof(mate_t));
+    subunit = make_subunit(name, desc, 1, 1, data, cpu_name_update);
     unit->add_sub_metric(unit, subunit);
-    name = "cpu_freq";
-    desc = "cpu  frequency";
-    subunit = make_subunit(name, desc, -1, M_FLOAT, sizeof(float), "GHz", cpu_freq_update);
+    name = "cpu load";
+    desc = "load";
+    data = (mate_t *)malloc(sizeof(mate_t));
+    subunit = make_subunit(name, desc, -1, 1, data, cpu_load_update);
     unit->add_sub_metric(unit, subunit);
 }
 
@@ -99,6 +100,7 @@ struct list_head *_create_metrics_chain(void)
     sprintf(unit->metric_description, "about cpu info.");
     create_sub_metric_chain(unit);
     list_add_tail(&(unit->node), head);
+
     return head;
 }
 
@@ -127,8 +129,8 @@ struct metric_unit *make_unit(void)
     pthread_mutex_init(&(unit->updating), NULL);
     pthread_rwlock_init(&(unit->unit_lock), NULL);
     unit->add_sub_metric = _add_sub_metric;
-    unit->del_metric = _destroy_unit;
-    unit->del_metric_safely = _destroy_unit_safely;
+    unit->del_metric = _del_metric;
+    unit->del_metric_safely = _del_metric_safely;
     unit->run_sub_metric = _run_sub_metric;
     unit->last_update_time = 0;
     unit->expire_time = 0;
@@ -143,21 +145,17 @@ int32_t _update_data(struct sub_metric_unit *subunit)
 
 struct sub_metric_unit *make_subunit(char *name,
         char *description, int32_t run_time,
-        enum data_type t, uint32_t size, char *unit,
-        void (*update)(void *))
+        int data_num, mate_t *data, void (*update)(void *))
 {
-    struct sub_metric_unit *subunit = (struct sub_metric_unit *)malloc(sizeof(struct sub_metric_unit) + size);
+    struct sub_metric_unit *subunit = (struct sub_metric_unit *)malloc(sizeof(struct sub_metric_unit));
     memset(subunit, 0, sizeof(struct sub_metric_unit));
     INIT_LIST_HEAD(&(subunit->sub_node));
     pthread_rwlock_init(&(subunit->sub_unit_lock), NULL);
     strcpy(subunit->sub_metric_name, name);
     strcpy(subunit->sub_metric_description, description);
     subunit->run_time = run_time;
-    subunit->t = t;
-    subunit->size = size;
-    if (unit != NULL) {
-        strcpy(subunit->unit, unit);
-    }
+    subunit->data_num = data_num;
+    subunit->data = data;
     subunit->del_sub_metric = _destroy_subunit;
     subunit->del_sub_metric_safely = _free_subunit;
     subunit->do_update = update;
@@ -165,7 +163,7 @@ struct sub_metric_unit *make_subunit(char *name,
     return subunit;
 }
 
-void _destroy_unit_safely(struct metric_unit *unit)
+void _del_metric_safely(struct metric_unit *unit)
 {
     //this func may be block, but we should use this;
     struct list_head *pos, *n;
@@ -183,7 +181,7 @@ void _destroy_unit_safely(struct metric_unit *unit)
     unit = NULL;
 }
 
-void _destroy_unit(struct metric_unit *unit)
+void _del_metric(struct metric_unit *unit)
 {
     //we use this only at exit.
     struct list_head *pos, *n;
