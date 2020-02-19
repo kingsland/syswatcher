@@ -7,7 +7,7 @@ void delete_all_metric(void) {
     struct list_head *pos;
     struct list_head *n;
     struct metric_unit *unit;
-    list_for_each_safe(pos, n, watcher.metrics_head) {
+    list_for_each_safe(pos, n, &(watcher.metrics_head)) {
         unit = container_of(pos, struct metric_unit, node);
         delete_metric(unit);
     }
@@ -15,6 +15,6 @@ void delete_all_metric(void) {
 
 void delete_metric(struct metric_unit *unit) {
     list_del(&(unit->node));
-    unit->del_metric(unit);
+    unit->do_del_metric(unit);
 }
 
