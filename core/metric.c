@@ -106,8 +106,7 @@ void _add_sub_metric(struct metric_unit *unit, struct sub_metric_unit *subunit)
 
 void metric_info(struct metric_unit *unit)
 {
-    printf("run %s: ", unit->metric_name);
-    printf("%s\n\n", unit->metric_description);
+    printf("metric: %s\n", unit->metric_name);
 }
 
 void list_metric(void)
@@ -261,6 +260,16 @@ int _add_metric(void *watcher, plugin_channel_t *plugin_metrics)
 
 int _del_metric(void *watcher, plugin_key_t id)
 {
+    struct list_head *head, *pos, *n;
+    struct syswatcher *_watcher = watcher;
+    struct metric_unit *unit;
+    head = &(_watcher->metrics_head);
+    list_for_each_safe(pos, n, head) {
+        unit = container_of(pos, struct metric_unit, node);
+        if (unit->plugin_id == id) {
+            unit->do_del_metric(unit);
+        }
+    }
     return 0;
 }
 
