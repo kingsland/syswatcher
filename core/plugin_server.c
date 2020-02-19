@@ -47,11 +47,11 @@ int plugin_server_finish(void)
     int ret = -1;
     
     if (plugin_mgr_check(g_mgr)) {
-        plugin_mgr_des(&g_mgr);
         if (g_mgr == NULL) {
             pthread_cancel(g_mgr->plugin_thread_id);
             ret = 0;
         }
+        plugin_mgr_des(&g_mgr);
     }
 
     return ret;
@@ -135,7 +135,6 @@ void update_config(int *pfd)
     timeout.tv_sec = 2;
     timeout.tv_usec = 0;
 
-    printf("select .... \n");
     retval = select(nfd, &rfds, NULL, NULL, &timeout);
     if (retval == -1) {
         perror("select "COMUNICATION_CMD);
