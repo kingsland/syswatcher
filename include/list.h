@@ -90,7 +90,7 @@ static inline void list_del(struct list_head *entry)
 #define list_for_each(pos, head) \
 	for (pos = (head)->next; pos != (head); pos = pos->next)
 
-#define offsetof(TYPE, MEMBER) ((size_t) &((TYPE *)0)->MEMBER)
+#define list_offsetof(TYPE, MEMBER) ((size_t) &((TYPE *)0)->MEMBER)
 
 /**
  * container_of - cast a member of a structure out to the containing structure
@@ -101,6 +101,6 @@ static inline void list_del(struct list_head *entry)
  */
 #define container_of(ptr, type, member) ({                      \
 	const typeof( ((type *)0)->member ) *__mptr = (ptr);    \
-	(type *)( (char *)__mptr - offsetof(type,member) );})
+	(type *)( (char *)__mptr - list_offsetof(type,member) );})
 
 #endif  //end of LIST_H
