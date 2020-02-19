@@ -192,7 +192,7 @@ void _do_del_metric(struct metric_unit *unit)
         printf("  |-sub metric: %s\n", subunit->sub_metric_name);
         subunit->do_del_sub_metric(subunit);
     }
-
+    list_del(&(unit->node));
     pthread_mutex_destroy(&(unit->updating));
     pthread_rwlock_destroy(&(unit->unit_lock));
     free(unit);
@@ -211,6 +211,7 @@ void _free_subunit(struct sub_metric_unit *subunit)
 void _destroy_subunit(struct sub_metric_unit *subunit)
 {
     pthread_rwlock_destroy(&(subunit->sub_unit_lock));
+    list_del(&(subunit->sub_node));
     free(subunit);
     subunit = NULL;
 }
@@ -243,7 +244,7 @@ int _add_metric(void *watcher, plugin_channel_t *plugin_metrics)
     plugin_sub_channel_t *plugin_sub_metric = plugin_metrics->sub_channel;
     strcpy(unit->metric_name, plugin_metrics->name);
     strcpy(unit->metric_description, plugin_metrics->desc);
-    unit->plugin_id = unit->plugin_id;
+    unit->plugin_id = plugin_metrics->plugin_id;
 
     for (count = 0; count < sub_metric_num; count++) {
         struct sub_metric_unit *subunit =
