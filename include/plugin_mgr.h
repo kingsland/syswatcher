@@ -7,6 +7,7 @@
 #include <time.h>
 #include "plugin_ext_def.h"
 #include "plugin_protocol.h"
+#include <defs.h>
 #include <pthread.h>
 
 #define PLUGIN_MGR_TAG_CHECKSUM     0xe50a7d21

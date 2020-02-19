@@ -1,2 +1,6 @@
 *.o
 tags
+*.so
+*.swp
+*syswatcher
+*plugin.client
