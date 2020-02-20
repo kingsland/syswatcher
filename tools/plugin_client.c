@@ -13,10 +13,10 @@
 void help_information(const char *info)
 {
     printf(" _____________________________________________________________\n");
-    printf("|______________ \033[1;33;40mSystem Resource Monitor Toolkit\033[0m ______________|\n");
+    printf("|_______________ \033[1;33;40mSystem Resource Monitor Tool\033[0m ________________|\n");
     printf("|                                                             |\n");
     printf("    \033[1mUsage:\033[0m \n");
-    printf("           \033[1m%s  <load|unload>  <path>\033[0m\n", info);
+    printf("           \033[1m%s  <load|unload|reload>  <path>\033[0m\n", info);
     printf("|_____________________________________________________________|\n");
 
     return;
@@ -77,6 +77,8 @@ int main(int argc, char* argv[])
             type = 0;
         else if (!strncmp(argv[1], "unload", 6))
             type = 1;
+        else if (!strncmp(argv[1], "reload", 6))
+            type = 2;
         else {
             help_information(strrchr(argv[0], '/')+1);
             ret = SRM_PARAMETER_ERR;

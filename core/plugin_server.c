@@ -13,9 +13,51 @@
 #include <dlfcn.h>
 #include <errno.h>
 #include "list.h"
+#include <setjmp.h>
+#include <signal.h>
+
+typedef struct plugin_obj
+{
+    int fd;
+    struct {
+        jmp_buf jmp_env;
+        int current_sig;
+        char occurred[64];
+    } sig;
+    plugin_mgr_t *mgr;
+    void* args;
+}plugin_obj_t;
 
 
 static plugin_mgr_t *g_mgr = NULL;
+static plugin_obj_t plugin_object;
+
+void signal_hdl(int sig)
+{
+    plugin_object.sig.current_sig = sig;
+    plugin_object.sig.occurred[sig - 1]++;
+    longjmp(plugin_object.sig.jmp_env, sig);
+
+    return;
+}
+
+void signal_reg(void)
+{
+    signal(SIGHUP, signal_hdl);   // 1
+    signal(SIGINT, signal_hdl);   // 2
+    signal(SIGQUIT, signal_hdl);  // 3
+    signal(SIGILL, signal_hdl);   // 4
+    signal(SIGABRT, signal_hdl);  // 6
+    signal(SIGBUS, signal_hdl);   // 7
+    signal(SIGFPE, signal_hdl);   // 8
+    signal(SIGKILL, signal_hdl);  // 9
+    signal(SIGUSR1, signal_hdl);  // 10
+    signal(SIGSEGV, signal_hdl);  // 11
+    signal(SIGUSR2, signal_hdl);  // 12
+    signal(SIGTERM, signal_hdl);  // 15
+
+    return;
+}
 
 static void* plugin_run(void*);
 
@@ -196,18 +238,18 @@ void update_config(int *pfd)
     return ;
 }
 
-void exec_collect(void* args)
+static void* plugin_run(void* args)
 {
-    struct list_head *pos, *m;
-    struct list_head *item_pos, *n;
+    int fd;
 
-    list_for_each_safe(pos, m, g_mgr->head) {
-        list_for_each_safe(item_pos, n, ((plugin_t*)pos)->head) {
-            ((collect_item_list_t*)item_pos)->collect_data_func(&(((collect_item_list_t*)item_pos)->item));
-        }
+    fd = initialize();
+
+    while (true)
+    {
+        sleep(2);
+        update_config(&fd);
     }
-
-    return ;
+    return NULL;
 }
 
 /*
@@ -223,25 +265,7 @@ int main(int argc, char* argv[])
     {
         sleep(2);
         update_config(&fd);
-        exec_collect(NULL);
     }
 
     return 0;
-}
-*/
-
-
-static void* plugin_run(void* args)
-{
-    int fd;
-
-    fd = initialize();
-
-    while (true)
-    {
-        sleep(2);
-        update_config(&fd);
-    }
-    return NULL;
-}
-
+}*/

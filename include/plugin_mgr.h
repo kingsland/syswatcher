@@ -62,14 +62,17 @@ typedef struct plugin_mgr
 
 
 /*========================  * PLUGIN MGR API *  =========================*/
-bool plugin_mgr_check(plugin_mgr_t*);
 plugin_mgr_t* plugin_mgr_init(void);
 void plugin_mgr_des(plugin_mgr_t**);
-void plugin_parser(plugin_mgr_t*, plugin_cmd_t *);
+
+bool plugin_mgr_check(plugin_mgr_t*);
+plugin_t* plugin_search_by_name(plugin_mgr_t*, const char *);
+plugin_t* plugin_search_by_id(plugin_mgr_t*, const plugin_key_t);
+int plugin_parser(plugin_mgr_t*, plugin_cmd_t *);
 int plugin_load(plugin_mgr_t*, plugin_t *);
 int plugin_reload(plugin_mgr_t*, plugin_t *);
 int plugin_unload(plugin_mgr_t*, plugin_t *);
 
-    
+
 #endif /* __plugin_mgr_h__ */
 
