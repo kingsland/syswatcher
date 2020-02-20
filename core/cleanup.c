@@ -14,7 +14,6 @@ void delete_all_metric(void) {
 }
 
 void delete_metric(struct metric_unit *unit) {
-    list_del(&(unit->node));
     unit->do_del_metric(unit);
 }
 
