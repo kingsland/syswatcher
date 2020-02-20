@@ -13,52 +13,52 @@
 #include <dlfcn.h>
 #include <errno.h>
 #include "list.h"
-#include <setjmp.h>
-#include <signal.h>
-
-typedef struct plugin_obj
-{
-    int fd;
-    struct {
-        jmp_buf jmp_env;
-        int current_sig;
-        char occurred[64];
-    } sig;
-    plugin_mgr_t *mgr;
-    void* args;
-}plugin_obj_t;
-
-
+//#include <setjmp.h>
+//#include <signal.h>
+//
+//typedef struct plugin_obj
+//{
+//    int fd;
+//    struct {
+//        jmp_buf jmp_env;
+//        int current_sig;
+//        char occurred[64];
+//    } sig;
+//    plugin_mgr_t *mgr;
+//    void* args;
+//}plugin_obj_t;
+//
+//
 static plugin_mgr_t *g_mgr = NULL;
-static plugin_obj_t plugin_object;
-
-void signal_hdl(int sig)
-{
-    plugin_object.sig.current_sig = sig;
-    plugin_object.sig.occurred[sig - 1]++;
-    longjmp(plugin_object.sig.jmp_env, sig);
-
-    return;
-}
-
-void signal_reg(void)
-{
-    signal(SIGHUP, signal_hdl);   // 1
-    signal(SIGINT, signal_hdl);   // 2
-    signal(SIGQUIT, signal_hdl);  // 3
-    signal(SIGILL, signal_hdl);   // 4
-    signal(SIGABRT, signal_hdl);  // 6
-    signal(SIGBUS, signal_hdl);   // 7
-    signal(SIGFPE, signal_hdl);   // 8
-    signal(SIGKILL, signal_hdl);  // 9
-    signal(SIGUSR1, signal_hdl);  // 10
-    signal(SIGSEGV, signal_hdl);  // 11
-    signal(SIGUSR2, signal_hdl);  // 12
-    signal(SIGTERM, signal_hdl);  // 15
-
-    return;
-}
-
+//static plugin_obj_t plugin_object;
+//
+//void signal_hdl(int sig)
+//{
+//    plugin_object.sig.current_sig = sig;
+//    plugin_object.sig.occurred[sig - 1]++;
+//    longjmp(plugin_object.sig.jmp_env, sig);
+//
+//    return;
+//}
+//
+//void signal_reg(void)
+//{
+//    signal(SIGHUP, signal_hdl);   // 1
+//    signal(SIGINT, signal_hdl);   // 2
+//    signal(SIGQUIT, signal_hdl);  // 3
+//    signal(SIGILL, signal_hdl);   // 4
+//    signal(SIGABRT, signal_hdl);  // 6
+//    signal(SIGBUS, signal_hdl);   // 7
+//    signal(SIGFPE, signal_hdl);   // 8
+//    signal(SIGKILL, signal_hdl);  // 9
+//    signal(SIGUSR1, signal_hdl);  // 10
+//    signal(SIGSEGV, signal_hdl);  // 11
+//    signal(SIGUSR2, signal_hdl);  // 12
+//    signal(SIGTERM, signal_hdl);  // 15
+//
+//    return;
+//}
+//
 static void* plugin_run(void*);
 
 int plugin_server_start(int (*load)(void *, plugin_channel_t *),
@@ -97,175 +97,175 @@ int plugin_server_finish(void)
     return ret;
 }
 
-int initialize(void)
-{
-    /*
-    bool status = false;*/
-    int fd;
-
-    if (access(COMUNICATION_CMD, F_OK) < 0)
-        mkfifo(COMUNICATION_CMD, 0777);
-/*
-    if (access(COMUNICATION_CMD, F_OK) < 0)
-        mkfifo(COMUNICATION_CMD, 0x777);
-    if ((fd = open(COMUNICATION_CMD, O_RDONLY | O_EXCL | O_CREAT, 0766)) <0) {
-        if (errno == EEXIST) {
-            if ((fd = open(COMUNICATION_CMD, O_RDONLY, 0766)) < 0){
-                perror("open "COMUNICATION_CMD);
-            } else {
-                status = true;
-            }
-        }
-    }else {
-        status = true;
-    }*/
-    fd = open(COMUNICATION_CMD, O_RDWR);
-    return fd;
-}
-
-void destory(int fd)
-{
-    if (fd > 0)
-        close(fd);
-
-    return;
-}
-
-void do_cmd(plugin_cmd_t *cmd_data_p)
-{
-    plugin_parser(g_mgr, cmd_data_p);
-    switch (cmd_data_p->type & 0xF0) {
-        case 0x00: /* load */
-
-            break;
-        case 0x01: /* unload */
-
-            break;
-        case 0x02: /* reload */
-
-            break;
-        default:
-            break;
-    }
-
-    return;
-}
-
-void update_config(int *pfd)
-{
-    int nfd;
-    int fd = *pfd;
-    fd_set rfds;
-    int retval;
-    struct timeval timeout;
-    plugin_cmd_t cmd_data;
-    uint16_t rl_len=0, len=0;/*
-    uint16_t rd_len=0, rl_len=0, len=0;*/
-    char *p;
-    /*
-    if (*fd < 0) {
-        if ((*fd = initialize()) < 0)
-            return;
-    }
-    */
-    nfd = fd + 1;
-    FD_ZERO(&rfds);
-    FD_SET(fd, &rfds);
-
-    timeout.tv_sec = 2;
-    timeout.tv_usec = 0;
-
-    retval = select(nfd, &rfds, NULL, NULL, &timeout);
-    if (retval == -1) {
-        perror("select "COMUNICATION_CMD);
-    } else if (retval>0) {
-        /* printf("select TRUE\n"); */
-        if (FD_ISSET(fd, &rfds)) {
-            /* read head of message*/
-/*            rd_len = 0;*/
-            len = 4;
-            p = (char*)&cmd_data;
-            #if 0
-            while (len > 0) {
-                /*rl_len = read(fd, ((char*)(&cmd_data))+rd_len, len);*/
-                rl_len = read(fd, p+rd_len, len);
-                if (rl_len <= 0)
-                    if (errno == EINTR || errno == EAGAIN)
-                        break;
-                    else
-                        continue;
-                rd_len += rl_len;
-                len -= rl_len;
-            }
-            #endif
-            rl_len = read(fd, p, len);
-            if (rl_len <= 0) {
-                if (errno == EINTR || errno == EAGAIN)
-                    printf("EINTR EAGAIN ");
-                else {
-                    perror("select ");
-                }
-            }
-            /* procotol check */
-            if (cmd_data.flag != 0x6b || (cmd_data.type & 0xF0) != 0x90)
-                return;
-
-            /* read body of message */
-            len = cmd_data.size;
-            #if 0
-            while (len > 0) {
-                /*rl_len = read(fd, (char*)(&cmd_data)+rd_len, len);*/
-                rl_len = read(fd, p+rd_len, len);
-                if (rl_len <= 0)
-                    if (!(errno == EINTR || errno == EAGAIN))
-                        break;
-                    else
-                        continue;
-                rd_len += rl_len;
-                len -= rl_len;
-            }
-            #endif
-            read(fd, p+4, len);
-
-            /* cmd parser and exec func */
-            do_cmd(&cmd_data);
-        }
-
-    } else {
-            ;/*printf("select timeout.\n");*/
-    }
-
-    return ;
-}
-
+//int initialize(void)
+//{
+//    /*
+//    bool status = false;*/
+//    int fd;
+//
+//    if (access(COMUNICATION_CMD, F_OK) < 0)
+//        mkfifo(COMUNICATION_CMD, 0777);
+///*
+//    if (access(COMUNICATION_CMD, F_OK) < 0)
+//        mkfifo(COMUNICATION_CMD, 0x777);
+//    if ((fd = open(COMUNICATION_CMD, O_RDONLY | O_EXCL | O_CREAT, 0766)) <0) {
+//        if (errno == EEXIST) {
+//            if ((fd = open(COMUNICATION_CMD, O_RDONLY, 0766)) < 0){
+//                perror("open "COMUNICATION_CMD);
+//            } else {
+//                status = true;
+//            }
+//        }
+//    }else {
+//        status = true;
+//    }*/
+//    fd = open(COMUNICATION_CMD, O_RDWR);
+//    return fd;
+//}
+//
+//void destory(int fd)
+//{
+//    if (fd > 0)
+//        close(fd);
+//
+//    return;
+//}
+//
+//void update_config(int *pfd)
+//{
+//    int nfd;
+//    int fd = *pfd;
+//    fd_set rfds;
+//    int retval;
+//    struct timeval timeout;
+//    plugin_cmd_t cmd_data;
+//    uint16_t rl_len=0, len=0;/*
+//    uint16_t rd_len=0, rl_len=0, len=0;*/
+//    char *p;
+//    /*
+//    if (*fd < 0) {
+//        if ((*fd = initialize()) < 0)
+//            return;
+//    }
+//    */
+//    nfd = fd + 1;
+//    FD_ZERO(&rfds);
+//    FD_SET(fd, &rfds);
+//
+//    timeout.tv_sec = 2;
+//    timeout.tv_usec = 0;
+//
+//    retval = select(nfd, &rfds, NULL, NULL, &timeout);
+//    if (retval == -1) {
+//        perror("select "COMUNICATION_CMD);
+//    } else if (retval>0) {
+//        /* printf("select TRUE\n"); */
+//        if (FD_ISSET(fd, &rfds)) {
+//            /* read head of message*/
+///*            rd_len = 0;*/
+//            len = 4;
+//            p = (char*)&cmd_data;
+//            #if 0
+//            while (len > 0) {
+//                /*rl_len = read(fd, ((char*)(&cmd_data))+rd_len, len);*/
+//                rl_len = read(fd, p+rd_len, len);
+//                if (rl_len <= 0)
+//                    if (errno == EINTR || errno == EAGAIN)
+//                        break;
+//                    else
+//                        continue;
+//                rd_len += rl_len;
+//                len -= rl_len;
+//            }
+//            #endif
+//            rl_len = read(fd, p, len);
+//            if (rl_len <= 0) {
+//                if (errno == EINTR || errno == EAGAIN)
+//                    printf("EINTR EAGAIN ");
+//                else {
+//                    perror("select ");
+//                }
+//            }
+//            /* procotol check */
+//            if (cmd_data.flag != 0x6b || (cmd_data.type & 0xF0) != 0x90)
+//                return;
+//
+//            /* read body of message */
+//            len = cmd_data.size;
+//            #if 0
+//            while (len > 0) {
+//                /*rl_len = read(fd, (char*)(&cmd_data)+rd_len, len);*/
+//                rl_len = read(fd, p+rd_len, len);
+//                if (rl_len <= 0)
+//                    if (!(errno == EINTR || errno == EAGAIN))
+//                        break;
+//                    else
+//                        continue;
+//                rd_len += rl_len;
+//                len -= rl_len;
+//            }
+//            #endif
+//            read(fd, p+4, len);
+//
+//            /* plugin parser and register or unregister op. */
+//            plugin_parser(g_mgr, &cmd_data);
+//        }
+//
+//    } else {
+//            ;/*printf("select timeout.\n");*/
+//    }
+//
+//    return ;
+//}
+//
+/*int main(int argc, char* argv[]) */
 static void* plugin_run(void* args)
 {
     int fd;
+    int nfd;
+    fd_set rfds;
+    int retval;
+    plugin_cmd_t cmd_data;
+    uint16_t len=0;
+    char *p;
 
-    fd = initialize();
+    if (access(COMUNICATION_CMD, F_OK) < 0)
+        mkfifo(COMUNICATION_CMD, 0777);
+    fd = open(COMUNICATION_CMD, O_RDWR);
 
     while (true)
     {
-        sleep(2);
-        update_config(&fd);
+        nfd = fd + 1;
+        FD_ZERO(&rfds);
+        FD_SET(fd, &rfds);
+
+        retval = select(nfd, &rfds, NULL, NULL, NULL);
+        if (retval == -1) {
+            perror("select "COMUNICATION_CMD);
+        } else if (retval>0) {
+            /* printf("select TRUE\n"); */
+            if (FD_ISSET(fd, &rfds)) {
+                /* read head of message*/
+                len = 4;
+                p = (char*)&cmd_data;
+                read(fd, p, len);
+
+                /* procotol check */
+                if (cmd_data.flag != 0x6b || (cmd_data.type & 0xF0) != 0x90)
+                    continue;
+
+                /* read body of message */
+                len = cmd_data.size;
+                read(fd, p+4, len);
+
+                /* plugin parser and register or unregister op. */
+                plugin_parser(g_mgr, &cmd_data);
+            }
+
+        } else {
+                ;/*printf("select timeout.\n");*/
+        }
     }
+
     return NULL;
 }
-
-/*
-int main(int argc, char* argv[])
-{
-    int fd;
-
-    g_mgr = plugin_mgr_init();
-
-    fd = initialize();
-
-    while (true)
-    {
-        sleep(2);
-        update_config(&fd);
-    }
-
-    return 0;
-}*/
