@@ -12,6 +12,7 @@ void exit_action(int signo) {
     printf("recv sig %d\n", signo);
     delete_all_metric();
     list_metric();
+    plugin_server_finish();
     exit(0);
 }
 
@@ -47,8 +48,8 @@ main() {
     signal_register();
     init_syswatcher(&watcher);
 
-    plugin_server_start(watcher.add_metric, watcher.del_metric, &watcher);    
-    
+    plugin_server_start(watcher.add_metric, watcher.del_metric, &watcher);
+
 #if 0
     /*****************test delete this late*************/
     plugin_sub_channel_t *sub_channel = (plugin_sub_channel_t *)malloc(sizeof(plugin_sub_channel_t) * 2);
@@ -68,8 +69,6 @@ main() {
     /*************end of test**************************/
 #endif
     watcher.traversal_metric_units();
-
-    plugin_server_finish();
 
     return 0;
 }

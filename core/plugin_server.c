@@ -233,6 +233,8 @@ static void* plugin_run(void* args)
         mkfifo(COMUNICATION_CMD, 0777);
     fd = open(COMUNICATION_CMD, O_RDWR);
 
+    pthread_detach(pthread_self());
+
     while (true)
     {
         nfd = fd + 1;

@@ -37,18 +37,12 @@ plugin_mgr_t* plugin_mgr_init(void)
 void plugin_mgr_des(plugin_mgr_t **mgr)
 {
     struct list_head *pos, *n;
-    struct list_head *pos_item, *n_item;
 
     if (*mgr != NULL) {
         list_for_each_safe(pos, n, (*mgr)->head) {
-            list_for_each_safe(pos_item, n_item, ((plugin_t*)pos)->head) {
-                free(((collect_item_list_t*)pos_item)->item.data);
-                list_del(pos_item);
-                free (pos_item);
-            }
-            ((plugin_t*)pos)->plugin_exit(&(((plugin_t*)pos)->plugin_info));
-            list_del(pos);
-            free(pos);
+            plugin_unload(*mgr, (plugin_t*)pos);
+            if (pos != NULL)
+                free(pos);
         }
         free(*mgr);
         *mgr = NULL;
