@@ -14,19 +14,17 @@
 #include <errno.h>
 #include "list.h"
 
-/* protocol list */
-/*extern struct resource_list *resource_p;*/
 
 static plugin_mgr_t *g_mgr = NULL;
 
 static void* plugin_run(void*);
 
-int plugin_server_start(int (*load)(void *, plugin_channel_t *), 
-                                 int (*unload)(void *,  plugin_key_t), 
+int plugin_server_start(int (*load)(void *, plugin_channel_t *),
+                                 int (*unload)(void *,  plugin_key_t),
                                  void* context)
 {
     int ret = -1;
-    
+
     if (!plugin_mgr_check(g_mgr)) {
         g_mgr = plugin_mgr_init();
         if (g_mgr != NULL && plugin_mgr_check(g_mgr)) {
@@ -45,7 +43,7 @@ int plugin_server_start(int (*load)(void *, plugin_channel_t *),
 int plugin_server_finish(void)
 {
     int ret = -1;
-    
+
     if (plugin_mgr_check(g_mgr)) {
         if (g_mgr == NULL) {
             pthread_cancel(g_mgr->plugin_thread_id);
@@ -62,7 +60,7 @@ int initialize(void)
     /*
     bool status = false;*/
     int fd;
-    
+
     if (access(COMUNICATION_CMD, F_OK) < 0)
         mkfifo(COMUNICATION_CMD, 0777);
 /*
@@ -96,18 +94,18 @@ void do_cmd(plugin_cmd_t *cmd_data_p)
     plugin_parser(g_mgr, cmd_data_p);
     switch (cmd_data_p->type & 0xF0) {
         case 0x00: /* load */
-            
+
             break;
         case 0x01: /* unload */
-            
+
             break;
         case 0x02: /* reload */
-            
+
             break;
         default:
             break;
     }
-    
+
     return;
 }
 
@@ -123,7 +121,7 @@ void update_config(int *pfd)
     uint16_t rd_len=0, rl_len=0, len=0;*/
     char *p;
     /*
-    if (*fd < 0) {   
+    if (*fd < 0) {
         if ((*fd = initialize()) < 0)
             return;
     }
@@ -152,7 +150,7 @@ void update_config(int *pfd)
                 if (rl_len <= 0)
                     if (errno == EINTR || errno == EAGAIN)
                         break;
-                    else 
+                    else
                         continue;
                 rd_len += rl_len;
                 len -= rl_len;
@@ -169,7 +167,7 @@ void update_config(int *pfd)
             /* procotol check */
             if (cmd_data.flag != 0x6b || (cmd_data.type & 0xF0) != 0x90)
                 return;
-            
+
             /* read body of message */
             len = cmd_data.size;
             #if 0
@@ -186,15 +184,15 @@ void update_config(int *pfd)
             }
             #endif
             read(fd, p+4, len);
-            
+
             /* cmd parser and exec func */
             do_cmd(&cmd_data);
         }
-        
+
     } else {
             ;/*printf("select timeout.\n");*/
     }
-    
+
     return ;
 }
 
@@ -202,13 +200,13 @@ void exec_collect(void* args)
 {
     struct list_head *pos, *m;
     struct list_head *item_pos, *n;
-    
+
     list_for_each_safe(pos, m, g_mgr->head) {
         list_for_each_safe(item_pos, n, ((plugin_t*)pos)->head) {
             ((collect_item_list_t*)item_pos)->collect_data_func(&(((collect_item_list_t*)item_pos)->item));
-        } 
+        }
     }
-    
+
     return ;
 }
 
@@ -216,11 +214,11 @@ void exec_collect(void* args)
 int main(int argc, char* argv[])
 {
     int fd;
-    
+
     g_mgr = plugin_mgr_init();
-    
+
     fd = initialize();
-    
+
     while (true)
     {
         sleep(2);
@@ -236,9 +234,9 @@ int main(int argc, char* argv[])
 static void* plugin_run(void* args)
 {
     int fd;
-    
+
     fd = initialize();
-    
+
     while (true)
     {
         sleep(2);
