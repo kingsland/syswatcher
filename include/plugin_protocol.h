@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 
-#define PROTOCOL_PIPE_PATH   "/srv/pipe/"
-#define COMUNICATION_CMD    PROTOCOL_PIPE_PATH"cmd"
+#define PROTOCOL_PIPE_PATH   "/tmp/"
+#define COMUNICATION_CMD    PROTOCOL_PIPE_PATH"syswatcher.plugin"
 #define PLUGIN_CMD_LENGTH  10240
 
 typedef struct plugin_cmd
