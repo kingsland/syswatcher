@@ -7,12 +7,14 @@
 #include <cleanup.h>
 #include <string.h>
 #include <plugin_server.h>
+#include <log.h>
 
 void exit_action(int signo) {
     printf("recv sig %d\n", signo);
     delete_all_metric();
     list_metric();
     plugin_server_finish();
+    exit_logger(&log_unit);
     exit(0);
 }
 
@@ -44,6 +46,11 @@ plugin_channel_t plugin = {
 
 int
 main() {
+    init_logger(&log_unit, LEVEL_INFO);
+    int count = 100;
+    while(count--) {
+        print_log(LEVEL_INFO, "%s %d\n", __func__, __LINE__);
+    }
     printf("syswatcher core init\n");
     signal_register();
     init_syswatcher(&watcher);
