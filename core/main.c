@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <execinfo.h>
 #include <unistd.h>
 #include <metric.h>
 #include <signal.h>
@@ -10,13 +11,39 @@
 #include <log.h>
 
 void exit_action(int signo) {
-    logging(LEVEL_ZERO, "AT EXIT\n");
-    logging(LEVEL_ZERO, "delete all metric\n");
-    delete_all_metric();
-    logging(LEVEL_ZERO, "unload plugin server\n");
-    plugin_server_finish();
-    logging(LEVEL_ZERO, "DONE\n");
-    exit_logger(&log_unit);
+    cleanup();
+    exit(0);
+}
+
+void
+print_trace(void)
+{
+    int j, nptrs;
+#define SIZE 100
+    void *buffer[100];
+    char **strings;
+
+    nptrs = backtrace(buffer, SIZE);
+    logging(LEVEL_ZERO, "backtrace() returned %d addresses\n", nptrs);
+
+    /* The call backtrace_symbols_fd(buffer, nptrs, STDOUT_FILENO)
+       would produce similar output to the following: */
+
+    strings = backtrace_symbols(buffer, nptrs);
+    if (strings == NULL) {
+        perror("backtrace_symbols");
+        exit(EXIT_FAILURE);
+    }
+
+    for (j = 0; j < nptrs; j++)
+        logging(LEVEL_ZERO, "%s\n", strings[j]);
+
+    free(strings);
+}
+
+void segv_handler(int signo) {
+    print_trace();
+    cleanup();
     exit(0);
 }
 
@@ -25,6 +52,7 @@ void signal_register(void) {
     signal(SIGQUIT, exit_action);
     signal(SIGKILL, exit_action);
     signal(SIGTERM, exit_action);
+    signal(SIGSEGV, segv_handler);
 }
 
 void print_banner(void)
