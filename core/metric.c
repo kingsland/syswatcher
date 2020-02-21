@@ -1,4 +1,5 @@
 #include <metric.h>
+#include <log.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
@@ -57,52 +58,6 @@ void _add_sub_metric(struct metric_unit *unit, struct sub_metric_unit *subunit)
 {
     list_add_tail(&(subunit->sub_node), &(unit->sub_node_head));
 }
-
-//void cpu_name_update(void *data) {
-//    strcpy(data, "intel x86");
-//    printf("%s %d\n", __func__, __LINE__);
-//}
-//
-//void cpu_load_update(void *data) {
-//    float freq = 3.4;
-//    memcpy(data, &freq, sizeof(freq));
-//    printf("%s %d\n", __func__, __LINE__);
-//}
-//
-//void create_sub_metric_chain(struct metric_unit *unit)
-//{
-//    struct sub_metric_unit *subunit;
-//    char *name = "cpu generic information";
-//    char *desc = "cpu name, frequency...";
-//    mate_t *data = (mate_t *)malloc(sizeof(mate_t));
-//    subunit = make_subunit(name, desc, 1, 1, data, cpu_name_update);
-//    unit->add_sub_metric(unit, subunit);
-//    name = "cpu load";
-//    desc = "load";
-//    data = (mate_t *)malloc(sizeof(mate_t));
-//    subunit = make_subunit(name, desc, -1, 1, data, cpu_load_update);
-//    unit->add_sub_metric(unit, subunit);
-//}
-//
-//struct list_head *_create_metrics_chain(void)
-//{
-//    int count = 4;
-//    struct metric_unit *unit;
-//    NEW_LIST_NODE(head);
-//    for (; count > 0; count--) {
-//        unit = make_unit();
-//        sprintf(unit->metric_name, "metric%d", count);
-//        sprintf(unit->metric_description, "this is metric%d, and this is for test;", count);
-//        list_add_tail(&(unit->node), head);
-//    }
-//    unit = make_unit();
-//    sprintf(unit->metric_name, "cpu misc");
-//    sprintf(unit->metric_description, "about cpu info.");
-//    create_sub_metric_chain(unit);
-//    list_add_tail(&(unit->node), head);
-//
-//    return head;
-//}
 
 void metric_info(struct metric_unit *unit)
 {
@@ -170,7 +125,6 @@ void _do_del_metric_safely(struct metric_unit *unit)
     list_for_each_safe(pos, n, &(unit->sub_node_head)) {
         //free all the sub metrics
         subunit = container_of(pos, struct sub_metric_unit, sub_node);
-        //printf("  |-free sub metric: %s\n", subunit->sub_metric_name);
         subunit->do_del_sub_metric_safely(subunit);
     }
 
@@ -185,11 +139,11 @@ void _do_del_metric(struct metric_unit *unit)
     //we use this only at exit.
     struct list_head *pos, *n;
     struct sub_metric_unit *subunit;
-    printf("metric: %s\n", unit->metric_name);
+    logging(LEVEL_INFO, "delete metric: %s\n", unit->metric_name);
     list_for_each_safe(pos, n, &(unit->sub_node_head)) {
         //free all the sub metrics
         subunit = container_of(pos, struct sub_metric_unit, sub_node);
-        printf("  |-sub metric: %s\n", subunit->sub_metric_name);
+        logging(LEVEL_INFO, "  |-sub metric: %s\n", subunit->sub_metric_name);
         subunit->do_del_sub_metric(subunit);
     }
     list_del(&(unit->node));

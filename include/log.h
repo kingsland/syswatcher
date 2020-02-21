@@ -1,9 +1,26 @@
 #ifndef LOG_H
 #define LOG_H
-#include <log_ext_def.h>
+#include <plugin_ext_def.h>
 #include <list.h>
 #include <pthread.h>
 #include <stdio.h>
+
+enum log_level {
+    LEVEL_ZERO,
+    LEVEL_ERR,
+    LEVEL_WARN,
+    LEVEL_PLUGIN,
+    LEVEL_INFO
+};
+
+#define HEADER_STR  {\
+    "BASE", \
+    "ERR",  \
+    "WARN", \
+    "PLUGIN",   \
+    "INFO"}
+
+
 struct log_msg {
     struct list_head node;
     enum log_level level;
@@ -28,4 +45,5 @@ struct logger {
 struct logger log_unit;
 int init_logger(struct logger *log_unit, enum log_level level);
 void exit_logger(struct logger *log_unit);
+void logging(enum log_level level, const char *fmt, ...);
 #endif  //end of LOG_H

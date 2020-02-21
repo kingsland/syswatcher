@@ -5,22 +5,21 @@
 
 int sys_mem_collect(item_t *data)
 {
-    printf("-------- pluginAA sys_mem_collect -----------\n");
+    plugin_print_log("-------- pluginAA sys_mem_collect -----------\n");
 
     return 0;
 }
 
 int sys_cpu_collect(item_t *data)
 {
-    printf("-------  pluginAA sys_cpu_collect -----------\n");
+    plugin_print_log("-------  pluginAA sys_cpu_collect -----------\n");
     
     return 0;
 }
 
 int pluginAA_init(plugin_info_t *plugin_info)
 {
-    printf("----  pluginAA pluginAA_init --------\n");
-
+    plugin_print_log("%s %d\n", __func__, __LINE__);
     plugin_info->version = PLUGIN_RELEASE_VERSION;
     plugin_info->name = "SystemResource";
     plugin_info->desc = "collect system resource.";

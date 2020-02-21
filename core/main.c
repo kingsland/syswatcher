@@ -10,10 +10,12 @@
 #include <log.h>
 
 void exit_action(int signo) {
-    printf("recv sig %d\n", signo);
+    logging(LEVEL_ZERO, "AT EXIT\n");
+    logging(LEVEL_ZERO, "delete all metric\n");
     delete_all_metric();
-    list_metric();
+    logging(LEVEL_ZERO, "unload plugin server\n");
     plugin_server_finish();
+    logging(LEVEL_ZERO, "DONE\n");
     exit_logger(&log_unit);
     exit(0);
 }
@@ -25,56 +27,25 @@ void signal_register(void) {
     signal(SIGTERM, exit_action);
 }
 
-/*****************test delete this late*************/
-int collect_cpu_freq(item_t *item) {
-    printf("%s %d\n", __func__, __LINE__);
-    return 0;
+void print_banner(void)
+{
+    logging(LEVEL_ZERO, "[           syswatcher          ]\n");
+    logging(LEVEL_ZERO, "=================================\n");
+    logging(LEVEL_ZERO, "name:\n");
+    logging(LEVEL_ZERO, "version:\n");
+    logging(LEVEL_ZERO, "compile time:\n");
+    logging(LEVEL_ZERO, "=================================\n");
 }
-
-int collect_cpu_usage(item_t *item) {
-    printf("%s %d\n", __func__, __LINE__);
-    return 0;
-}
-
-plugin_channel_t plugin = {
-    .plugin_id = 1000,
-    .name = "cpu misc",
-    .desc = "cpu misc desc",
-    .sub_metric_num = 2,
-};
-/*************end of test**************************/
 
 int
 main() {
     init_logger(&log_unit, LEVEL_INFO);
-    int count = 100;
-    while(count--) {
-        print_log(LEVEL_INFO, "%s %d\n", __func__, __LINE__);
-    }
-    printf("syswatcher core init\n");
+    print_banner();
     signal_register();
     init_syswatcher(&watcher);
 
     plugin_server_start(watcher.add_metric, watcher.del_metric, &watcher);
 
-#if 0
-    /*****************test delete this late*************/
-    plugin_sub_channel_t *sub_channel = (plugin_sub_channel_t *)malloc(sizeof(plugin_sub_channel_t) * 2);
-    strcpy(sub_channel->subname, "cpu freq");
-    strcpy(sub_channel->subdesc, "cpu freq desc");
-    sub_channel->run_once = true;
-    sub_channel->interval = TRAVERSAL_INTERVAL;
-    sub_channel->collect_data_func = collect_cpu_freq;
-
-    strcpy((sub_channel + 1)->subname, "cpu usage");
-    strcpy((sub_channel + 1)->subdesc, "cpu usage desc");
-    (sub_channel + 1)->run_once = false;
-    (sub_channel + 1)->interval = TRAVERSAL_INTERVAL;
-    (sub_channel + 1)->collect_data_func = collect_cpu_usage;
-    plugin.sub_channel = sub_channel;
-    watcher.add_metric((void *)(&watcher), &plugin);
-    /*************end of test**************************/
-#endif
     watcher.traversal_metric_units();
 
     return 0;

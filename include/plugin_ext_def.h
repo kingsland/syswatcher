@@ -80,36 +80,7 @@ typedef struct plugin_info
     unsigned item_count;
 }plugin_info_t;
 
-/*
-#define add_plugin_info(plugin_info_p, name, desc, item_count)   do {\
-                                plugin_info_p->version = PLUGIN_RELEASE_VERSION;\
-                                plugin_info_p->name = name;\
-                                plugin_info_p->desc = desc;\
-                                plugin_info_p->item_count = item_count;\
-                                plugin_info_p->collect_item = (collect_item_t*)malloc(sizeof(collect_item_t)*item_count);}while(0)
-
-#define add_collect_info_by_index(plugin_info_p, item_index, item_name, item_desc, \
-                                is_run_once, collect_func, collect_interval, data_count)   \
-                                        plugin_info_p->collect_item[item_index].item_name = item_name;\
-                                        plugin_info_p->collect_item[item_index].item_desc = item_desc;\
-                                        plugin_info_p->collect_item[item_index].run_once = is_run_once;\
-                                        plugin_info_p->collect_item[item_index].collect_data_func = collect_func;\
-                                        plugin_info_p->collect_item[item_index].interval = collect_interval;\
-                                        plugin_info_p->collect_item[item_index].data_count = data_count
-
-#define add_data_desc() 
-
-#define del_all_info(plugin_info_p)   \
-                        if (plugin_info_p->collect_item != NULL) {\
-                            free(plugin_info_p->collect_item);\
-                            plugin_info_p->collect_item = NULL;\
-                        }\
-                        plugin_info_p->itme_count = 0
-*/
-/*
-#define plugin_init(plugin_name) int plugin_name##_init(plugin_info_t *)
-#define plugin_exit(plugin_name) int plugin_name##_exit(plugin_info_t *)
-*/
+void plugin_print_log(const char *fmt, ...);
 
 #endif /* __plugin_ext_def_h__ */
 

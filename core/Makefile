@@ -1,12 +1,12 @@
 BIN=syswatcher
 SRCS=$(shell find . -maxdepth 1 | grep '\.c$$')
 OBJS=$(SRCS:%.c=%.o)
-CFLAGS=-Wall
+CFLAGS=-Wl,-E
 LIBS=-lpthread -ldl
 
 all:$(BIN)
 $(BIN):$(OBJS)
-	cc -o $@ $^ $(LIBS)
+	cc $(CFLAGS) -o $@ $^ $(LIBS)
 $(OBJS):%.o:%.c
 	gcc $(CFLAGS) $(LIBS) -c $^ -I../include -o $@
 clean:
