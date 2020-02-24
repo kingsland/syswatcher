@@ -11,9 +11,7 @@ struct sub_metric_unit *make_subunit(char *name,
 void free_subunit(struct sub_metric_unit *subunit);
 void _add_sub_metric(struct metric_unit *unit, struct sub_metric_unit *subunit);
 void _do_del_metric(struct metric_unit *unit);
-void _do_del_metric_safely(struct metric_unit *unit);
 void _destroy_subunit(struct sub_metric_unit *subunit);
-void _free_subunit(struct sub_metric_unit *subunit);
 
 void *do_run_sub_metric(void *arg)
 {
@@ -103,7 +101,6 @@ struct metric_unit *make_unit(void)
     unit->plugin_id = 0;
     unit->add_sub_metric = _add_sub_metric;
     unit->do_del_metric = _do_del_metric;
-    unit->do_del_metric_safely = _do_del_metric_safely; //delete this later
     unit->run_sub_metric = _run_sub_metric;
     unit->last_update_time = 0;
     unit->expire_time = 0;
@@ -129,26 +126,9 @@ struct sub_metric_unit *make_subunit(char *name,
     subunit->run_time = run_time;
     subunit->data_collection = data;
     subunit->do_del_sub_metric = _destroy_subunit;
-    subunit->do_del_sub_metric_safely = _free_subunit;
     subunit->do_update = update;
     subunit->update_data = _update_data;
     return subunit;
-}
-
-void _do_del_metric_safely(struct metric_unit *unit)
-{
-    //this func may be block, but we should use this;
-    struct list_head *pos, *n;
-    struct sub_metric_unit *subunit;
-    list_for_each_safe(pos, n, &(unit->sub_node_head)) {
-        //free all the sub metrics
-        subunit = container_of(pos, struct sub_metric_unit, sub_node);
-        subunit->do_del_sub_metric_safely(subunit);
-    }
-    unit->update_thread = NULL;
-    pthread_rwlock_destroy(&(unit->unit_lock));
-    free(unit);
-    unit = NULL;
 }
 
 void _do_del_metric(struct metric_unit *unit)

@@ -14,7 +14,6 @@ struct sub_metric_unit {
     pthread_rwlock_t sub_unit_lock;
     item_t      *data_collection;  //modules1 data0
                                     //modules1 data1 
-    void        (*do_del_sub_metric_safely)(struct sub_metric_unit *subunit);
     void        (*do_del_sub_metric)(struct sub_metric_unit *subunit);
     int32_t     (*update_data)(struct sub_metric_unit *);
     int         (*do_update)(item_t *);
@@ -38,7 +37,6 @@ struct metric_unit {
     thread_info *update_thread;
     void        (*add_sub_metric)(struct metric_unit *, struct sub_metric_unit *);
     void        (*run_sub_metric)(struct metric_unit *);
-    void        (*do_del_metric_safely)(struct metric_unit *unit);//delete this later
     void        (*do_del_metric)(struct metric_unit *unit);
     time_t      last_update_time;
     time_t      expire_time;
