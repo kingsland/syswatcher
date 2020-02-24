@@ -74,7 +74,8 @@ main() {
 
     plugin_server_start(watcher.add_metric, watcher.del_metric, &watcher);
 
-    watcher.traversal_metric_units();
+    watcher.thread_recycle((void *)&watcher);
+    watcher.traversal_metric_units((void *)&watcher);
 
     return 0;
 }
