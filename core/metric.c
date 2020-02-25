@@ -11,15 +11,14 @@ struct sub_metric_unit *make_subunit(char *name,
 void free_subunit(struct sub_metric_unit *subunit);
 void _add_sub_metric(struct metric_unit *unit, struct sub_metric_unit *subunit);
 void _do_del_metric(struct metric_unit *unit);
-void _do_del_metric_safely(struct metric_unit *unit);
 void _destroy_subunit(struct sub_metric_unit *subunit);
-void _free_subunit(struct sub_metric_unit *subunit);
 
 void *do_run_sub_metric(void *arg)
 {
     struct metric_unit *unit = (struct metric_unit *)arg;
+    struct thread_info *ti = unit->update_thread;
     struct list_head *head = &(unit->sub_node_head);
-    pthread_mutex_lock(&(unit->updating));
+    pthread_mutex_lock(&(ti->updating));
     struct list_head *pos;
     struct sub_metric_unit *subunit;
     list_for_each(pos, head) {
@@ -27,29 +26,46 @@ void *do_run_sub_metric(void *arg)
         if (subunit->run_time == 0) {
             continue;
         }
+        pthread_rwlock_wrlock(&(subunit->sub_unit_lock));
         if (subunit->run_time != -1) {
             subunit->run_time--;
         }
         if (subunit->update_data != NULL) {
             subunit->update_data(subunit);
         }
+        pthread_rwlock_unlock(&(subunit->sub_unit_lock));
     }
 
-    pthread_mutex_unlock(&(unit->updating));
+    pthread_mutex_unlock(&(ti->updating));
     pthread_exit(NULL);
 }
+
+struct thread_info *make_ti(void)
+{
+    struct thread_info *(ti) = (struct thread_info *)malloc(sizeof(struct thread_info));
+    ti->id = 0;
+    INIT_LIST_HEAD(&(ti->node));
+    pthread_mutex_init(&(ti->updating), NULL);
+    return ti;
+}
+
 
 void _run_sub_metric(struct metric_unit *unit)
 {
     int ret;
+    struct thread_info *ti;
     pthread_rwlock_wrlock(&(unit->unit_lock));
-    ret = pthread_mutex_trylock(&(unit->updating));
-    if (ret == 0) {
-        pthread_mutex_unlock(&(unit->updating));
+    if (unit->update_thread == NULL) {
+        ti = make_ti();
+        ti->unit = unit;
+        sprintf(ti->name, "test");
+        unit->update_thread = ti;
+        pthread_create(&(ti->id), NULL, do_run_sub_metric, unit);
+        //FIXME
+        list_add_tail(&(ti->node), &(watcher.thread_pool));
         unit->last_update_time = time(NULL);
-        pthread_create(&(unit->update_id), NULL, do_run_sub_metric, unit);
     } else {
-        printf("not finish, skip %s\n", unit->metric_name);
+        logging(LEVEL_WARN, "not finish, skip %s\n", unit->metric_name);
     }
     pthread_rwlock_unlock(&(unit->unit_lock));
 }
@@ -80,12 +96,11 @@ struct metric_unit *make_unit(void)
     memset(unit, 0, sizeof(struct metric_unit));
     INIT_LIST_HEAD(&(unit->node));
     INIT_LIST_HEAD(&(unit->sub_node_head));
-    pthread_mutex_init(&(unit->updating), NULL);
     pthread_rwlock_init(&(unit->unit_lock), NULL);
+    unit->update_thread = NULL;
     unit->plugin_id = 0;
     unit->add_sub_metric = _add_sub_metric;
     unit->do_del_metric = _do_del_metric;
-    unit->do_del_metric_safely = _do_del_metric_safely;
     unit->run_sub_metric = _run_sub_metric;
     unit->last_update_time = 0;
     unit->expire_time = 0;
@@ -111,27 +126,9 @@ struct sub_metric_unit *make_subunit(char *name,
     subunit->run_time = run_time;
     subunit->data_collection = data;
     subunit->do_del_sub_metric = _destroy_subunit;
-    subunit->do_del_sub_metric_safely = _free_subunit;
     subunit->do_update = update;
     subunit->update_data = _update_data;
     return subunit;
-}
-
-void _do_del_metric_safely(struct metric_unit *unit)
-{
-    //this func may be block, but we should use this;
-    struct list_head *pos, *n;
-    struct sub_metric_unit *subunit;
-    list_for_each_safe(pos, n, &(unit->sub_node_head)) {
-        //free all the sub metrics
-        subunit = container_of(pos, struct sub_metric_unit, sub_node);
-        subunit->do_del_sub_metric_safely(subunit);
-    }
-
-    pthread_mutex_destroy(&(unit->updating));
-    pthread_rwlock_destroy(&(unit->unit_lock));
-    free(unit);
-    unit = NULL;
 }
 
 void _do_del_metric(struct metric_unit *unit)
@@ -140,14 +137,16 @@ void _do_del_metric(struct metric_unit *unit)
     struct list_head *pos, *n;
     struct sub_metric_unit *subunit;
     logging(LEVEL_INFO, "delete metric: %s\n", unit->metric_name);
+    //waiting for thread exit
+
+    list_del(&(unit->node));
     list_for_each_safe(pos, n, &(unit->sub_node_head)) {
         //free all the sub metrics
         subunit = container_of(pos, struct sub_metric_unit, sub_node);
         logging(LEVEL_INFO, "  |-sub metric: %s\n", subunit->sub_metric_name);
         subunit->do_del_sub_metric(subunit);
     }
-    list_del(&(unit->node));
-    pthread_mutex_destroy(&(unit->updating));
+    unit->update_thread = NULL;
     pthread_rwlock_destroy(&(unit->unit_lock));
     free(unit);
     unit = NULL;
@@ -155,11 +154,9 @@ void _do_del_metric(struct metric_unit *unit)
 
 void _free_subunit(struct sub_metric_unit *subunit)
 {
-    //handler this gently
-    pthread_rwlock_destroy(&(subunit->sub_unit_lock));
-    //free thread
-    free(subunit);
-    subunit = NULL;
+//    pthread_rwlock_destroy(&(subunit->sub_unit_lock));
+//    free(subunit);
+//    subunit = NULL;
 }
 
 void _destroy_subunit(struct sub_metric_unit *subunit)
@@ -184,9 +181,41 @@ void *do_traversal_metric_units(void *arg) {
     }
 }
 
-void _traversal_metric_units(void) {
-    pthread_create(&(watcher.traversal_thread_id), NULL, do_traversal_metric_units, &(watcher.metrics_head));
-    pthread_join(watcher.traversal_thread_id, NULL);
+void _traversal_metric_units(struct syswatcher *watcher)
+{
+    pthread_create(&(watcher->traversal_thread_id), NULL, do_traversal_metric_units, &(watcher->metrics_head));
+    pthread_join(watcher->traversal_thread_id, NULL);
+}
+
+void *do_thread_recycle(void *arg)
+{
+    struct syswatcher *watcher = (struct syswatcher *)arg;
+    struct list_head *head = &(watcher->thread_pool);
+    int ret;
+    while(1) {
+        struct list_head *pos, *n;
+        struct thread_info *ti;
+        struct metric_unit *unit;
+        list_for_each_safe(pos, n, head) {
+            ti = container_of(pos, struct thread_info, node);
+            ret = pthread_mutex_trylock(&(ti->updating));
+            if (ret == 0) {
+                pthread_mutex_unlock(&(ti->updating));
+                unit = ti->unit;
+                unit->update_thread = NULL;
+                list_del(pos);
+                pthread_join(ti->id, NULL);
+                pthread_mutex_destroy(&(ti->updating));
+                free(ti);
+            }
+        }
+        sleep(1);   //modify this later.
+    }
+}
+
+void _thread_recycle(struct syswatcher *watcher)
+{
+    pthread_create(&(watcher->recycle_thread_id), NULL, do_thread_recycle, watcher);
 }
 
 int _add_metric(void *watcher, plugin_channel_t *plugin_metrics)
@@ -231,7 +260,9 @@ int _del_metric(void *watcher, plugin_key_t id)
 void init_syswatcher(struct syswatcher *watcher)
 {
     INIT_LIST_HEAD(&(watcher->metrics_head));
+    INIT_LIST_HEAD(&(watcher->thread_pool));
     watcher->add_metric = _add_metric;
     watcher->del_metric = _del_metric;
     watcher->traversal_metric_units = _traversal_metric_units;
+    watcher->thread_recycle = _thread_recycle;
 }
