@@ -31,13 +31,12 @@ void *do_run_sub_metric(void *arg)
     if (ti == NULL) {
         logging(LEVEL_WARN, "dead\n");
     }
-    pthread_mutex_lock(&(ti->updating));
     list_for_each(pos, head) {
         subunit = container_of(pos, struct sub_metric_unit, sub_node);
         if (subunit->run_time == 0) {
             continue;
         }
-        pthread_rwlock_wrlock(&(subunit->sub_unit_lock));
+        pthread_mutex_lock(&(subunit->sub_unit_lock));
         if (subunit->run_time != -1) {
             subunit->run_time--;
         }
@@ -47,7 +46,7 @@ void *do_run_sub_metric(void *arg)
                 subunit->update_data(subunit);
             }
         }
-        pthread_rwlock_unlock(&(subunit->sub_unit_lock));
+        pthread_mutex_unlock(&(subunit->sub_unit_lock));
     }
 
     pthread_mutex_unlock(&(ti->updating));
@@ -59,8 +58,9 @@ struct thread_info *make_ti(struct metric_unit *unit)
     struct thread_info *(ti) = (struct thread_info *)malloc(sizeof(struct thread_info));
     ti->id = 0;
     ti->unit = unit;
-    INIT_LIST_HEAD(&(ti->node));
     pthread_mutex_init(&(ti->updating), NULL);
+    pthread_mutex_lock(&(ti->updating));
+    INIT_LIST_HEAD(&(ti->node));
     return ti;
 }
 
@@ -69,7 +69,7 @@ void _run_sub_metric(struct metric_unit *unit)
     int ret;
     struct thread_info *ti;
     int trigger = 0;
-    pthread_rwlock_wrlock(&(unit->unit_lock));
+    pthread_mutex_lock(&(unit->unit_lock));
     trigger = unit->time_ring_move_forward(unit);
     if (trigger) {
         if (unit->update_thread == NULL) {
@@ -82,7 +82,7 @@ void _run_sub_metric(struct metric_unit *unit)
             logging(LEVEL_WARN, "not finish, skip %s\n", unit->metric_name);
         }
     }
-    pthread_rwlock_unlock(&(unit->unit_lock));
+    pthread_mutex_unlock(&(unit->unit_lock));
 }
 
 void _add_sub_metric(struct metric_unit *unit, struct sub_metric_unit *subunit)
@@ -111,7 +111,7 @@ struct metric_unit *make_unit(void)
     memset(unit, 0, sizeof(struct metric_unit));
     INIT_LIST_HEAD(&(unit->node));
     INIT_LIST_HEAD(&(unit->sub_node_head));
-    pthread_rwlock_init(&(unit->unit_lock), NULL);
+    pthread_mutex_init(&(unit->unit_lock), NULL);
     unit->update_thread = NULL;
     unit->plugin_id = 0;
     unit->add_sub_metric = _add_sub_metric;
@@ -136,7 +136,7 @@ struct sub_metric_unit *make_subunit(char *name,
     struct sub_metric_unit *subunit = (struct sub_metric_unit *)malloc(sizeof(struct sub_metric_unit));
     memset(subunit, 0, sizeof(struct sub_metric_unit));
     INIT_LIST_HEAD(&(subunit->sub_node));
-    pthread_rwlock_init(&(subunit->sub_unit_lock), NULL);
+    pthread_mutex_init(&(subunit->sub_unit_lock), NULL);
     strcpy(subunit->sub_metric_name, name);
     strcpy(subunit->sub_metric_description, description);
     subunit->run_time = run_time;
@@ -159,6 +159,7 @@ void _do_del_metric(struct metric_unit *unit)
     logging(LEVEL_INFO, "delete metric: %s\n", unit->metric_name);
     //waiting for thread exit
 
+    pthread_mutex_lock(&(unit->unit_lock));
     list_del(&(unit->node));
     list_for_each_safe(pos, n, &(unit->sub_node_head)) {
         //free all the sub metrics
@@ -167,14 +168,15 @@ void _do_del_metric(struct metric_unit *unit)
         subunit->do_del_sub_metric(subunit);
     }
     unit->update_thread = NULL;
-    pthread_rwlock_destroy(&(unit->unit_lock));
+    pthread_mutex_unlock(&(unit->unit_lock));
+    pthread_mutex_destroy(&(unit->unit_lock));
     free(unit);
     unit = NULL;
 }
 
 void _destroy_subunit(struct sub_metric_unit *subunit)
 {
-    pthread_rwlock_destroy(&(subunit->sub_unit_lock));
+    pthread_mutex_destroy(&(subunit->sub_unit_lock));
     list_del(&(subunit->sub_node));
     free(subunit);
     subunit = NULL;
@@ -204,28 +206,30 @@ void _traversal_metric_units(struct syswatcher *watcher)
 void *do_thread_recycle(void *arg)
 {
     struct syswatcher *watcher = (struct syswatcher *)arg;
-    struct list_head *head = &(watcher->thread_pool);
+    struct list_head *head = &(watcher->metrics_head);
+    struct list_head *pos;
     int ret;
     while(1) {
-        struct list_head *pos, *n;
         struct thread_info *ti;
         struct metric_unit *unit;
-        list_for_each_safe(pos, n, head) {
-            ti = container_of(pos, struct thread_info, node);
+        list_for_each(pos, head) {
+            unit = container_of(pos, struct metric_unit, node);
+            ti = unit->update_thread;
+            if (ti == NULL) {
+                continue;
+            }
+            pthread_mutex_lock(&(unit->unit_lock));
             ret = pthread_mutex_trylock(&(ti->updating));
             if (ret == 0) {
                 pthread_mutex_unlock(&(ti->updating));
-                unit = ti->unit;
                 unit->update_thread = NULL;
-                list_del(pos);
                 pthread_join(ti->id, NULL);
                 pthread_mutex_destroy(&(ti->updating));
                 free(ti);
             }
+            pthread_mutex_unlock(&(unit->unit_lock));
+            usleep(100000);
         }
-        //FIXME
-        //notify this, when thread finish
-        usleep(10000);   //modify this later.
     }
 }
 

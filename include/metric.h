@@ -13,7 +13,7 @@ struct sub_metric_unit {
     char        sub_metric_name[METRIC_NAME_LENGTH];//app A module1
     char        sub_metric_description[METRIC_DESC_LENGTH];
     int32_t     run_time;
-    pthread_rwlock_t sub_unit_lock;
+    pthread_mutex_t sub_unit_lock;
     time_t      interval;
     time_t      time_ring_left;
     int         (*go_one_step)(struct sub_metric_unit *);
@@ -38,7 +38,7 @@ struct metric_unit {
     char        metric_name[METRIC_NAME_LENGTH];//app A
     char        metric_description[METRIC_DESC_LENGTH];
     plugin_key_t plugin_id;
-    pthread_rwlock_t unit_lock;
+    pthread_mutex_t unit_lock;
     thread_info *update_thread;
     int         (*time_ring_move_forward)(struct metric_unit *);
     void        (*add_sub_metric)(struct metric_unit *, struct sub_metric_unit *);
