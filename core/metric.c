@@ -28,9 +28,7 @@ void *do_run_sub_metric(void *arg)
     struct list_head *pos;
     struct sub_metric_unit *subunit;
 
-    if (ti == NULL) {
-        logging(LEVEL_WARN, "dead\n");
-    }
+    pthread_detach(pthread_self());
     list_for_each(pos, head) {
         subunit = container_of(pos, struct sub_metric_unit, sub_node);
         if (subunit->run_time == 0) {
@@ -203,6 +201,8 @@ void _traversal_metric_units(struct syswatcher *watcher)
     pthread_join(watcher->traversal_thread_id, NULL);
 }
 
+//FIXME
+//重做线程管理，这里只能用大锁，消耗太大。
 void *do_thread_recycle(void *arg)
 {
     struct syswatcher *watcher = (struct syswatcher *)arg;
@@ -212,6 +212,8 @@ void *do_thread_recycle(void *arg)
     while(1) {
         struct thread_info *ti;
         struct metric_unit *unit;
+
+        pthread_mutex_lock(&(watcher->plugin_lock));
         list_for_each(pos, head) {
             unit = container_of(pos, struct metric_unit, node);
             ti = unit->update_thread;
@@ -223,13 +225,15 @@ void *do_thread_recycle(void *arg)
             if (ret == 0) {
                 pthread_mutex_unlock(&(ti->updating));
                 unit->update_thread = NULL;
-                pthread_join(ti->id, NULL);
+                //pthread_join(ti->id, NULL);
+                //replace with detach
                 pthread_mutex_destroy(&(ti->updating));
                 free(ti);
             }
             pthread_mutex_unlock(&(unit->unit_lock));
-            usleep(100000);
         }
+        pthread_mutex_unlock(&(watcher->plugin_lock));
+        usleep(100000);
     }
 }
 
@@ -269,12 +273,14 @@ int _del_metric(void *watcher, plugin_key_t id)
     struct syswatcher *_watcher = watcher;
     struct metric_unit *unit;
     head = &(_watcher->metrics_head);
+    pthread_mutex_lock(&(_watcher->plugin_lock));
     list_for_each_safe(pos, n, head) {
         unit = container_of(pos, struct metric_unit, node);
         if (unit->plugin_id == id) {
             unit->do_del_metric(unit);
         }
     }
+    pthread_mutex_unlock(&(_watcher->plugin_lock));
     return 0;
 }
 
@@ -315,4 +321,5 @@ void init_syswatcher(struct syswatcher *watcher)
     watcher->del_metric = _del_metric;
     watcher->traversal_metric_units = _traversal_metric_units;
     watcher->thread_recycle = _thread_recycle;
+    pthread_mutex_init(&(watcher->plugin_lock), NULL);
 }
