@@ -36,6 +36,7 @@ void *logging_thread(void *arg)
     int cond_ret;
     char str[4096];
     while (log_unit->thread_running) {
+        log_unit->closed = 0;
         pthread_mutex_lock(&(log_unit->notify_mtx));
         gettimeofday(&tv, NULL);
         ts.tv_nsec = tv.tv_usec * 1000 + 100000000;
@@ -191,8 +192,9 @@ int init_logger(struct logger *log_unit, enum log_level level)
     pthread_mutex_init(&(log_unit->res_mtx), NULL);
     pthread_cond_init(&(log_unit->notify_cond), NULL);
     log_unit->thread_running = 1;
+    log_unit->closed = 1;
     pthread_create(&(log_unit->logging_id), NULL, logging_thread, log_unit);
-    log_unit->closed = 0;
+    while(log_unit->closed);
     return 0;
 }
 
