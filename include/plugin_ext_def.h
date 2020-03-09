@@ -55,7 +55,7 @@ typedef struct mate_t {
 } mate_t;
 
 typedef struct item_t {
-    int elememt_num;
+    int element_num;
     mate_t *data;
 } item_t;
 

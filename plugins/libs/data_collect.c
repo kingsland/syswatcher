@@ -342,6 +342,54 @@ total_jiffies_func ( void )
         wio_jiffies + irq_jiffies + sirq_jiffies + steal_jiffies;
 }
 
+    JT
+core_total_jiffies_func ( int core )
+{
+    char *p, *tmp;
+    int idx;
+    JT user_jiffies, nice_jiffies, system_jiffies, idle_jiffies,
+       wio_jiffies, irq_jiffies, sirq_jiffies, steal_jiffies;
+
+    p = update_file(&proc_stat);
+    for (idx = 0; idx < core + 1; idx++)
+    {
+        tmp = strstr(p, "cpu");
+        tmp += 3;
+        p = tmp;
+    }
+    p -= 3;
+
+    p = skip_token(p);
+    p = skip_whitespace(p);
+    user_jiffies = strtod( p, &p );
+    p = skip_whitespace(p);
+    nice_jiffies = strtod( p, &p );
+    p = skip_whitespace(p);
+    system_jiffies = strtod( p, &p );
+    p = skip_whitespace(p);
+    idle_jiffies = strtod( p, &p );
+
+    if(num_cpustates == NUM_CPUSTATES_24X)
+        return user_jiffies + nice_jiffies + system_jiffies + idle_jiffies;
+
+    p = skip_whitespace(p);
+    wio_jiffies = strtod( p, &p );
+    p = skip_whitespace(p);
+    irq_jiffies = strtod( p, &p );
+    p = skip_whitespace(p);
+    sirq_jiffies = strtod( p, &p );
+
+    if(num_cpustates == NUM_CPUSTATES_26X)
+        return user_jiffies + nice_jiffies + system_jiffies + idle_jiffies +
+            wio_jiffies + irq_jiffies + sirq_jiffies;
+
+    p = skip_whitespace(p);
+    steal_jiffies = strtod( p, &p );
+
+    return user_jiffies + nice_jiffies + system_jiffies + idle_jiffies +
+        wio_jiffies + irq_jiffies + sirq_jiffies + steal_jiffies;
+}
+
 int get_core_num ( void )
 {
     char *p, *tmp;
@@ -420,6 +468,44 @@ float cpu_aidle_func ( void )
     val = ((double)idle_jiffies/(double)total_jiffies) * 100.0;
 
     val = sanityCheck( __LINE__, __FILE__, __FUNCTION__, val, (double)idle_jiffies, (double)total_jiffies, idle_jiffies, total_jiffies, 0, 0 );
+    return val;
+}
+
+#define MAX_CORE_NUM    (128)
+struct core_stat {
+    JT  last_idle_jiffies;
+    JT  last_total_jiffies;
+} stats[MAX_CORE_NUM] = {0};
+
+float cpu_core_usage(int core)
+{
+    char *p, *tmp;
+    float val;
+    int idx;
+    JT idle_jiffies, total_jiffies, diff;
+    p = update_file(&proc_stat);
+    for (idx = 0; idx < core + 1; idx++)
+    {
+        tmp = strstr(p, "cpu");
+        tmp += 3;
+        p = tmp;
+    }
+    p -= 3;
+    p = skip_token(p);
+    p = skip_token(p);
+    p = skip_token(p);
+    p = skip_token(p);
+    idle_jiffies  = strtod( p , (char **)NULL );
+    total_jiffies = core_total_jiffies_func(core);
+    diff = idle_jiffies - stats[core].last_idle_jiffies;
+    if (diff) {
+        val = ((double)(diff * 100)/(double)(total_jiffies - stats[core].last_total_jiffies));
+    } else {
+        val = 0.0;
+        printf("%llu %llu %llu %llu\n", idle_jiffies, total_jiffies, stats[core].last_idle_jiffies, stats[core].last_total_jiffies);
+    }
+    stats[core].last_idle_jiffies  = idle_jiffies;
+    stats[core].last_total_jiffies = total_jiffies;
     return val;
 }
 

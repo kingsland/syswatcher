@@ -14,7 +14,7 @@ PLUGIN_CC_C_OBJS=libpluginCC.o
 INCLUDE=../../include
 
 all: 
-	gcc -std=c99 -g -fPIC -shared $(PLUGIN_AA_C_SRCS) -I $(INCLUDE) -o $(PLUGIN_AA)
+	gcc -std=c89 -g -fPIC -shared $(PLUGIN_AA_C_SRCS) -I $(INCLUDE) -o $(PLUGIN_AA)
 	gcc -std=c99 -g -fPIC -shared $(PLUGIN_BB_C_SRCS) -I $(INCLUDE) -o $(PLUGIN_BB)
 	gcc -std=c99 -g -fPIC -shared $(PLUGIN_CC_C_SRCS) -I $(INCLUDE) -o $(PLUGIN_CC)
         

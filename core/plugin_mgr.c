@@ -218,12 +218,12 @@ int plugin_load(plugin_mgr_t* mgr, plugin_t *plugin_node)
                                             plugin_node->plugin_info.collect_item[i].collect_data_func;
                     plugin_node->notify_info.sub_channel[i].run_once =
                                             plugin_node->plugin_info.collect_item[i].run_once;
-                    plugin_node->notify_info.sub_channel[i].item.elememt_num =
+                    plugin_node->notify_info.sub_channel[i].item.element_num =
                                             plugin_node->plugin_info.collect_item[i].data_count;
                     plugin_node->notify_info.sub_channel[i].item.data =
-                                    (mate_t*)malloc(sizeof(mate_t)*plugin_node->notify_info.sub_channel[i].item.elememt_num);
+                                    (mate_t*)malloc(sizeof(mate_t)*plugin_node->notify_info.sub_channel[i].item.element_num);
                     if (plugin_node->notify_info.sub_channel[i].item.data == NULL) {
-                        plugin_node->notify_info.sub_channel[i].item.elememt_num = 0;
+                        plugin_node->notify_info.sub_channel[i].item.element_num = 0;
                     }
                 }
             }
@@ -258,7 +258,7 @@ int plugin_unload(plugin_mgr_t* mgr, plugin_t *plugin_node)
                 if (plugin_node->notify_info.sub_channel[i].item.data != NULL) {
                     free(plugin_node->notify_info.sub_channel[i].item.data);
                     plugin_node->notify_info.sub_channel[i].item.data = NULL;
-                    plugin_node->notify_info.sub_channel[i].item.elememt_num = 0;
+                    plugin_node->notify_info.sub_channel[i].item.element_num = 0;
                 }
             }
 

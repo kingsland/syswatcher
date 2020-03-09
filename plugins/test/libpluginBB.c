@@ -2,18 +2,18 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <log.h>
 
-int sysBB_mem_collect(item_t *data)
+int sys_mem_collect(item_t *data)
 {
-    printf("---*-- pluginBB sys_mem_collect ----*----\n");
+    logging(LEVEL_INFO, "%s %d\n", __func__, __LINE__);
 
     return 0;
 }
 
-int sysBB_cpu_collect(item_t *data)
+int sys_cpu_collect(item_t *data)
 {
-    printf("--**-  pluginBB sys_cpu_collect --**------\n");
-
+    logging(LEVEL_INFO, "%s %d\n", __func__, __LINE__);
     return 0;
 }
 
@@ -30,16 +30,16 @@ int pluginBB_init(plugin_info_t *plugin_info)
 
     plugin_info->collect_item[0].item_name = "sysbb-mem";
     plugin_info->collect_item[0].item_desc = "collect memory information on systembb.";
-    plugin_info->collect_item[0].run_once = true;
-    plugin_info->collect_item[0].collect_data_func = sysBB_mem_collect;
+    plugin_info->collect_item[0].run_once = false;
+    plugin_info->collect_item[0].collect_data_func = sys_mem_collect;
     plugin_info->collect_item[0].interval = 2;
     plugin_info->collect_item[0].data_count = 3;
     
     plugin_info->collect_item[1].item_name = "sysbb-cpu";
     plugin_info->collect_item[1].item_desc = "collect cpu information on systembb.";
     plugin_info->collect_item[1].run_once = false;
-    plugin_info->collect_item[1].collect_data_func = sysBB_cpu_collect;
-    plugin_info->collect_item[1].interval = 5;
+    plugin_info->collect_item[1].collect_data_func = sys_cpu_collect;
+    plugin_info->collect_item[1].interval = 1;
     plugin_info->collect_item[1].data_count = 1;
     
     return 0;

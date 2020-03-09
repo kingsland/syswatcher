@@ -21,7 +21,7 @@ collect_item_t items[] = {
     {
         .item_name = "cpu usage",
         .item_desc = "cpu usage, sys user iowait...",
-        .run_once = true,
+        .run_once = false,
         .collect_data_func = cpu_data_collect,
         .interval = 1,
     },
@@ -54,29 +54,39 @@ int cpu_spec_collect(item_t *data)
 void set_data_collect(mate_t *data_set, char *name,
         char *unit, enum data_type t, union val_t v)
 {
+    sprintf(data_set->name, "%s", name);
+    sprintf(data_set->unit, "%s", unit);
+    data_set->t = t;
+    data_set->val = v;
 }
+
+int send_data(item_t *data);
 
 int cpu_data_collect(item_t *data)
 {
     int data_idx = 0;
-    val_t cpu_idle;
+    val_t cpu_idle, cpu_usage;
+    char name[16];
     mate_t *data_set = data->data;
     data->elememt_num = items[1].data_count;
+    //FIXME
+    //rewrite this, data is unstable.
+    //don't trust this api.
+    for (;data_idx < data->elememt_num; data_idx++) {
+        cpu_idle.f = cpu_core_usage(data_idx);
+        cpu_usage.f = 100.0 - cpu_idle.f;
+        if (data_idx != 0) {
+            sprintf(name, "cpu%d usage", data_idx);
+        } else {
+            sprintf(name, "cpu usage");
+        }
+        set_data_collect(&(data_set[data_idx]), name, "%", M_FLOAT, cpu_usage);
+    }
+    for (data_idx = 0; data_idx < data->elememt_num; data_idx++) {
+        printf("%s: %f%s\n", data_set[data_idx].name, data_set[data_idx].val.f, data_set[data_idx].unit);
+    }
     
-    cpu_idle.f = cpu_idle_func();
-    set_data_collect(&(data_set[data_idx]), "cpu usage", "%%", M_FLOAT, cpu_idle);
-    printf("cpu_idle: %f\n", cpu_idle.f);
-
-//    data_idx++;
-//    for (; data_idx < data->elememt_num; data_idx++)
-//    {
-//        char name[16];
-//        int core_idx = data_idx - 1;
-//        sprintf(name, "cpu%d usage", data_idx);
-//        cpu_idle.f = cpu_idle_func(core_idx);
-//        set_data_collect(&(data_set[data_idx]), name, "%%", M_FLOAT, cpu_idle);
-//        //printf("cpu%d_idle: %f\n", core_idx, cpu_idle.f);
-//    }
+    send_data(data);
 
     return 0;
 }
