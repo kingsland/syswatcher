@@ -3,8 +3,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include <data_collect.h>
+#include <gm_file.h>
+#include <cpu_data.h>
 
+timely_file cpu_stat    = { {0,0} , 1., "/proc/stat", NULL, BUFFSIZE };
+char filebuf[BUFFSIZE];
 int cpu_data_collect(item_t *data);
 int cpu_spec_collect(item_t *data);
 int corenum;
@@ -32,7 +35,6 @@ plugin_info_t pluginfo = {
     .desc = "all information about cpu",
     .item_count = 2,
 };
-
 
 int cpu_spec_collect(item_t *data)
 {
@@ -64,37 +66,55 @@ int send_data(item_t *data);
 
 int cpu_data_collect(item_t *data)
 {
+    char *p;
     int data_idx = 0;
-    val_t cpu_idle, cpu_usage;
-    char name[16];
+    static uint64_t run_count = 0;
+    val_t cpu_idle, cpu_usage, cpu_sys, cpu_user, cpu_iowait;
+    char tmp[16], name[16];
+
+    p = update_file(&cpu_stat);
     mate_t *data_set = data->data;
     data->elememt_num = items[1].data_count;
-    //FIXME
-    //rewrite this, data is unstable.
-    //don't trust this api.
     for (;data_idx < data->elememt_num; data_idx++) {
-        cpu_idle.f = cpu_core_usage(data_idx);
+        cpu_idle.f = cpu_core_usage(data_idx, p);
         cpu_usage.f = 100.0 - cpu_idle.f;
+        cpu_user.f = core_user_usage(data_idx, p);
+        cpu_sys.f = core_sys_usage(data_idx, p);
+        cpu_iowait.f = core_iowait_usage(data_idx, p);
         if (data_idx != 0) {
-            sprintf(name, "cpu%d usage", data_idx);
+            sprintf(tmp, "cpu%d", data_idx);
         } else {
-            sprintf(name, "cpu usage");
+            sprintf(tmp, "cpu");
         }
-        set_data_collect(&(data_set[data_idx]), name, "%", M_FLOAT, cpu_usage);
-    }
-    for (data_idx = 0; data_idx < data->elememt_num; data_idx++) {
-        printf("%s: %f%s\n", data_set[data_idx].name, data_set[data_idx].val.f, data_set[data_idx].unit);
-    }
-    
-    send_data(data);
+        if (run_count != 0) {
+            sprintf(name, "%s usage", tmp);
+            set_data_collect(&(data_set[data_idx]), name, "%", M_FLOAT, cpu_usage);
+            //plugin_print_log("%s:%f\n", name, cpu_usage.f);
 
-    return 0;
+            sprintf(name, "%s user", tmp);
+            set_data_collect(&(data_set[data_idx]), name, "%", M_FLOAT, cpu_user);
+            //plugin_print_log("%s:%f\n", name, cpu_user.f);
+
+            sprintf(name, "%s system", tmp);
+            set_data_collect(&(data_set[data_idx]), name, "%", M_FLOAT, cpu_sys);
+            //plugin_print_log("%s:%f\n", name, cpu_sys.f);
+
+            sprintf(name, "%s iowait", tmp);
+            set_data_collect(&(data_set[data_idx]), name, "%", M_FLOAT, cpu_iowait);
+            //plugin_print_log("%s:%f\n", name, cpu_iowait.f);
+        }
+    }
+    run_count++;
 }
 
 PLUGIN_ENTRY(cpu, plugin_info)
 {
-    corenum = get_core_num();
+    char *stat;
+    stat = update_file(&cpu_stat);
+    corenum = get_core_num(stat);
+    num_cpustates = num_cpustates_func(stat);
     items[1].data_count = corenum + 1;
+
     PLUGIN_INIT(plugin_info, items, &pluginfo);
     return 0;
 }

@@ -2,6 +2,7 @@
 #define FILE_H 1
 
 #include <sys/time.h>
+#include <stddef.h>
 
 /* Never changes */
 #ifndef BUFFSIZE
