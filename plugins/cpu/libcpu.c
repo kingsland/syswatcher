@@ -5,8 +5,8 @@
 #include <unistd.h>
 #include <gm_file.h>
 #include <cpu_data.h>
-
-timely_file cpu_stat    = { {0,0} , 1., "/proc/stat", NULL, BUFFSIZE };
+char buffer[BUFFSIZE];
+timely_file cpu_stat    = { {0,0} , 1., "/proc/stat", buffer, BUFFSIZE };
 char filebuf[BUFFSIZE];
 int cpu_data_collect(item_t *data);
 int cpu_spec_collect(item_t *data);
@@ -105,6 +105,7 @@ int cpu_data_collect(item_t *data)
         }
     }
     run_count++;
+    return 0;
 }
 
 PLUGIN_ENTRY(cpu, plugin_info)
