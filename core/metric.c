@@ -257,8 +257,11 @@ int _add_metric(void *watcher, plugin_channel_t *plugin_metrics)
                             (plugin_sub_metric + count)->collect_data_func);
         unit->add_sub_metric(unit, subunit);
     }
-    list_add_tail(&(unit->node), &(_watcher->metrics_head));
     unit->update_thread_info = make_ti(unit);
+    pthread_mutex_lock(&(_watcher->plugin_lock));
+    list_add_tail(&(unit->node), &(_watcher->metrics_head));
+    pthread_mutex_unlock(&(_watcher->plugin_lock));
+    logging(LEVEL_INFO, "add metric\n");
     return 0;
 }
 
@@ -276,6 +279,7 @@ int _del_metric(void *watcher, plugin_key_t id)
             unit->do_del_metric(unit);
         }
     }
+    logging(LEVEL_INFO, "%p %p %p\n", head->next, head->prev, head);
     pthread_mutex_unlock(&(_watcher->plugin_lock));
     return 0;
 }
