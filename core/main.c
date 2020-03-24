@@ -9,6 +9,7 @@
 #include <string.h>
 #include <plugin_server.h>
 #include <log.h>
+#include <fifo.h>
 
 void exit_action(int signo) {
     cleanup();
@@ -65,8 +66,41 @@ void print_banner(void)
     logging(LEVEL_ZERO, "=================================\n");
 }
 
+struct fifo_head *fifo;
+void *push_thread(void *arg)
+{
+    int count = 0;
+    while(1) {
+        INIT_FIFO_NODE(fnode);
+        sprintf(fnode->priv, "count:%d", count++);
+        fifo->push(fifo, fnode);
+    }
+}
+
+void *pop_thread(void *arg)
+{
+    int count = 0;
+    struct fifo_node *node;
+    while(1) {
+        node = fifo->pop(fifo);
+        if (node != NULL) {
+            //printf("%s\n", node->priv);
+            DESTROY_FIFO_NODE(node);
+        }
+    }
+}
+
+
+
 int
 main() {
+//    if ((fifo = init_fifo()) == NULL) {
+//        printf("init fifo failed\n");
+//    }
+//    pthread_t push_id, pop_id;
+//    pthread_create(&push_id, NULL, push_thread, NULL);
+//    pthread_create(&pop_id, NULL, pop_thread, NULL);
+//    while(1) {sleep(1);}
     init_logger(&log_unit, LEVEL_INFO);
     print_banner();
     signal_register();
@@ -74,8 +108,6 @@ main() {
 
     plugin_server_start(watcher.add_metric, watcher.del_metric, &watcher);
 
-    watcher.thread_recycle((void *)&watcher);
     watcher.traversal_metric_units((void *)&watcher);
-
     return 0;
 }

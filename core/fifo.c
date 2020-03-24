@@ -5,10 +5,13 @@
 
 void _push(struct fifo_head *fifo, struct fifo_node *node)
 {
+    pthread_mutex_lock(&(fifo->fifo_mtx));
     if (fifo->exit_flag) {
+        pthread_mutex_unlock(&(fifo->fifo_mtx));
         return;
     }
-    pthread_mutex_lock(&(fifo->fifo_mtx));
+    //FIXME
+    //add notification
     list_add(&(fifo->head), &(node->node));
     pthread_mutex_unlock(&(fifo->fifo_mtx));
 }
@@ -17,10 +20,13 @@ struct fifo_node *_pop(struct fifo_head *fifo)
 {
     struct list_head *list_node;
     struct fifo_node *node = NULL;
+    pthread_mutex_lock(&(fifo->fifo_mtx));
     if (fifo->exit_flag) {
+        pthread_mutex_unlock(&(fifo->fifo_mtx));
         return NULL;
     }
-    pthread_mutex_lock(&(fifo->fifo_mtx));
+    //FIXME
+    //detect notification
     if (!fifo->is_empty(fifo)) {
         list_node = fifo->head.prev;
         node = container_of(list_node, struct fifo_node, node);

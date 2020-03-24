@@ -27,9 +27,9 @@ struct sub_metric_unit {
 
 typedef struct thread_info {
     pthread_t id;
-    struct  list_head node;
-    pthread_mutex_t updating;
-    struct metric_unit *unit;
+    int thread_running;
+    struct fifo_head *action_fifo;
+    pthread_mutex_t ti_mtx;
 } thread_info;
 
 struct metric_unit {
@@ -39,7 +39,8 @@ struct metric_unit {
     char        metric_description[METRIC_DESC_LENGTH];
     plugin_key_t plugin_id;
     pthread_mutex_t unit_lock;
-    thread_info *update_thread;
+    thread_info *update_thread_info;
+    int         exiting;
     int         (*time_ring_move_forward)(struct metric_unit *);
     void        (*add_sub_metric)(struct metric_unit *, struct sub_metric_unit *);
     void        (*run_sub_metric)(struct metric_unit *);
@@ -50,14 +51,12 @@ struct metric_unit {
 
 struct syswatcher {
     struct list_head metrics_head;
-    struct list_head thread_pool;
     pthread_mutex_t plugin_lock;
     int (*add_metric)(void *watcher, plugin_channel_t *plugin_metrics);
     int (*del_metric)(void *watcher, plugin_key_t id);
     pthread_t traversal_thread_id;
     pthread_t recycle_thread_id;
     void (*traversal_metric_units)(struct syswatcher *watcher);
-    void (*thread_recycle)(struct syswatcher *watcher);
 };
 
 void init_syswatcher(struct syswatcher *watcher);

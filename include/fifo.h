@@ -5,7 +5,7 @@
 #include <stdlib.h>
 struct fifo_node {
     struct list_head node;
-    char priv[16];
+    void *priv;
 };
 
 struct fifo_head {
