@@ -1,4 +1,4 @@
-PLUGIN=plugin.client
+PLUGIN=ldsyswatcher_plg
 PLUGIN_C_SRCS=plugin_client.c
 PLUGIN_C_OBJS=plugin_client.o
 

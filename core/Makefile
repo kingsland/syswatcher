@@ -1,7 +1,7 @@
 BIN=syswatcher
 SRCS=$(shell find . -maxdepth 1 | grep '\.c$$')
 OBJS=$(SRCS:%.c=%.o)
-CFLAGS=-Wl,-E -std=gnu99 -g
+CFLAGS=-Wl,-E -Wall -std=gnu99 -g
 LIBS=-lpthread -ldl
 
 all:$(BIN)

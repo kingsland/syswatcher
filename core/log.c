@@ -178,10 +178,10 @@ void _clear_all_bufferd_msg(struct logger *log_unit)
 int init_logger(struct logger *log_unit, enum log_level level)
 {
     char filename[64];
-    sprintf(filename, "/tmp/syswatcher.log");
+    sprintf(filename, "/var/log/syswatcher.log");
     log_unit->logfile = fopen(filename, "a+");
     if (log_unit->logfile == NULL) {
-        printf("open file error\n");
+        perror("open log file");
         return 1;
     }
     log_unit->level = level;

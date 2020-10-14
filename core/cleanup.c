@@ -19,9 +19,15 @@ void delete_all_metric(void) {
     }
 }
 
+void stop_collector(void) {
+    watcher.stop_collector(&watcher);
+}
+
 void cleanup(void)
 {
     logging(LEVEL_ZERO, "AT EXIT\n");
+    logging(LEVEL_ZERO, "stop collector\n");
+    stop_collector();
     logging(LEVEL_ZERO, "delete all metric\n");
     delete_all_metric();
     logging(LEVEL_ZERO, "unload plugin server\n");

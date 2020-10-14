@@ -57,6 +57,8 @@ struct syswatcher {
     pthread_t traversal_thread_id;
     pthread_t recycle_thread_id;
     void (*traversal_metric_units)(struct syswatcher *watcher);
+    int (*start_collector)(struct syswatcher *watcher);
+    int (*stop_collector)(struct syswatcher *watcher);
 };
 
 void init_syswatcher(struct syswatcher *watcher);

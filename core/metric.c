@@ -26,11 +26,13 @@ struct fifo_node *make_action(struct sub_metric_unit *subunit)
 {
     INIT_FIFO_NODE(action_node);
     action_node->priv = (void *)subunit;
+    return action_node;
 }
 
 int del_action(struct fifo_node *action)
 {
     DESTROY_FIFO_NODE(action);
+    return 0;
 }
 
 int do_run_sub_metric(struct metric_unit *unit)
@@ -102,8 +104,6 @@ int destroy_ti(struct thread_info *ti)
 
 void _run_sub_metric(struct metric_unit *unit)
 {
-    int ret;
-    struct thread_info *ti;
     int trigger = 0;
     pthread_mutex_lock(&(unit->unit_lock));
     trigger = unit->time_ring_move_forward(unit);
@@ -279,7 +279,6 @@ int _del_metric(void *watcher, plugin_key_t id)
             unit->do_del_metric(unit);
         }
     }
-    logging(LEVEL_INFO, "%p %p %p\n", head->next, head->prev, head);
     pthread_mutex_unlock(&(_watcher->plugin_lock));
     return 0;
 }
@@ -289,7 +288,6 @@ int _del_metric(void *watcher, plugin_key_t id)
  */
 int _go_one_step(struct sub_metric_unit *subunit)
 {
-    time_t time_left;
     if (subunit->time_ring_left != 0) {
         subunit->time_ring_left --;
     }
@@ -313,11 +311,23 @@ int _time_ring_move_forward(struct metric_unit *unit)
     return trigger;
 }
 
+int _start_collector(struct syswatcher *watcher)
+{
+    return 0;
+}
+
+int _stop_collector(struct syswatcher *watcher)
+{
+    return 0;
+}
+
 void init_syswatcher(struct syswatcher *watcher)
 {
     INIT_LIST_HEAD(&(watcher->metrics_head));
     watcher->add_metric = _add_metric;
     watcher->del_metric = _del_metric;
     watcher->traversal_metric_units = _traversal_metric_units;
+    watcher->start_collector = _start_collector;
+    watcher->stop_collector = _stop_collector;
     pthread_mutex_init(&(watcher->plugin_lock), NULL);
 }
