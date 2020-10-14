@@ -32,6 +32,8 @@ void cleanup(void)
     delete_all_metric();
     logging(LEVEL_ZERO, "unload plugin server\n");
     plugin_server_finish();
+    logging(LEVEL_ZERO, "clean syswatcher\n");
+    exit_syswatcher(&watcher);
     logging(LEVEL_ZERO, "DONE\n");
     exit_logger(&log_unit);
 }

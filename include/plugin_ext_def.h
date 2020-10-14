@@ -42,6 +42,8 @@ typedef union val_t {
     uint16_t    uint16;
     int32_t     int32;
     uint32_t    uint32;
+    int64_t     int64;
+    uint64_t    uint64;
     float       f;
     double      d;
     char        str[MAX_STRING_SIZE];

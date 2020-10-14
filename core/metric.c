@@ -118,19 +118,79 @@ void _add_sub_metric(struct metric_unit *unit, struct sub_metric_unit *subunit)
     list_add_tail(&(subunit->sub_node), &(unit->sub_node_head));
 }
 
-void metric_info(struct metric_unit *unit)
+void print_val(data_type t, val_t val, char *val_str)
 {
-    printf("metric: %s\n", unit->metric_name);
+    switch (t) {
+        case M_INT8:
+            sprintf(val_str, "%d", val.int8);
+            break;
+        case M_INT16:
+            sprintf(val_str, "%d", val.int16);
+            break;
+        case M_INT32:
+            sprintf(val_str, "%d", val.int32);
+            break;
+        case M_INT64:
+            sprintf(val_str, "%ld", val.int64);
+            break;
+        case M_UINT8:
+            sprintf(val_str, "%u", val.uint8);
+            break;
+        case M_UINT16:
+            sprintf(val_str, "%u", val.uint16);
+            break;
+        case M_UINT32:
+            sprintf(val_str, "%u", val.uint32);
+            break;
+        case M_UINT64:
+            sprintf(val_str, "%lu", val.uint64);
+            break;
+        case M_FLOAT:
+            sprintf(val_str, "%f", val.f);
+            break;
+        case M_DOUBLE:
+            sprintf(val_str, "%f", val.d);
+            break;
+        case M_STRING:
+            sprintf(val_str, "%s", val.str);
+        default:
+            break;
+    }
 }
 
-void list_metric(void)
+void metric_info(struct metric_unit *unit)
+{
+    struct list_head *pos;
+    struct sub_metric_unit *subunit;
+    printf("metric: %s\n", unit->metric_name);
+    list_for_each(pos, &(unit->sub_node_head)) {
+        subunit = container_of(pos, struct sub_metric_unit, sub_node);
+        printf("    |--sub metric: %s\n", subunit->sub_metric_name);
+        item_t *data = subunit->data_collection;
+        int count;
+        char val_str[32];
+        for (count = 0; count < data->element_num; count++) {
+            printf("        |--%s ", data->data[count].name);
+            print_val(data->data[count].t, data->data[count].val, val_str);
+            printf("%s%s\n", val_str, data->data[count].unit);
+        }
+    }
+}
+
+void *list_data(void *arg)
 {
     struct list_head *pos;
     struct metric_unit *unit;
-    list_for_each(pos, &(watcher.metrics_head)) {
-        unit = container_of(pos, struct metric_unit, node);
-        metric_info(unit);
+    while(1) {
+        sleep(1);
+        pthread_rwlock_rdlock(&(watcher.plugin_lock));
+        list_for_each(pos, &(watcher.metrics_head)) {
+            unit = container_of(pos, struct metric_unit, node);
+            metric_info(unit);
+        }
+        pthread_rwlock_unlock(&(watcher.plugin_lock));
     }
+    return NULL;
 }
 
 struct metric_unit *make_unit(void)
@@ -151,12 +211,6 @@ struct metric_unit *make_unit(void)
     return unit;
 }
 
-int32_t _update_data(struct sub_metric_unit *subunit)
-{
-    subunit->do_update(subunit->data_collection);
-    return 0;
-}
-
 struct sub_metric_unit *make_subunit(char *name,
         char *description, int32_t run_time, time_t interval,
         item_t *data, int (*update)(item_t *))
@@ -175,7 +229,6 @@ struct sub_metric_unit *make_subunit(char *name,
     subunit->do_del_sub_metric = _destroy_subunit;
     subunit->do_update = update;
     subunit->go_one_step = _go_one_step;
-    subunit->update_data = _update_data;
     return subunit;
 }
 
@@ -216,7 +269,7 @@ void *do_traversal_metric_units(void *arg) {
         //we traversal the time ring here.
         struct list_head *pos;
         struct metric_unit *unit;
-        pthread_mutex_lock(&(_watcher->plugin_lock));
+        pthread_rwlock_rdlock(&(_watcher->plugin_lock));
         list_for_each(pos, head) {
             unit = container_of(pos, struct metric_unit, node);
             if (unit != NULL) {
@@ -225,7 +278,7 @@ void *do_traversal_metric_units(void *arg) {
                 }
             }
         }
-        pthread_mutex_unlock(&(_watcher->plugin_lock));
+        pthread_rwlock_unlock(&(_watcher->plugin_lock));
         sleep(RING_STEP);
     }
 }
@@ -258,9 +311,9 @@ int _add_metric(void *watcher, plugin_channel_t *plugin_metrics)
         unit->add_sub_metric(unit, subunit);
     }
     unit->update_thread_info = make_ti(unit);
-    pthread_mutex_lock(&(_watcher->plugin_lock));
+    pthread_rwlock_wrlock(&(_watcher->plugin_lock));
     list_add_tail(&(unit->node), &(_watcher->metrics_head));
-    pthread_mutex_unlock(&(_watcher->plugin_lock));
+    pthread_rwlock_unlock(&(_watcher->plugin_lock));
     logging(LEVEL_INFO, "add metric\n");
     return 0;
 }
@@ -271,7 +324,7 @@ int _del_metric(void *watcher, plugin_key_t id)
     struct syswatcher *_watcher = watcher;
     struct metric_unit *unit;
     head = &(_watcher->metrics_head);
-    pthread_mutex_lock(&(_watcher->plugin_lock));
+    pthread_rwlock_wrlock(&(_watcher->plugin_lock));
     list_for_each_safe(pos, n, head) {
         unit = container_of(pos, struct metric_unit, node);
         if (unit->plugin_id == id) {
@@ -279,7 +332,7 @@ int _del_metric(void *watcher, plugin_key_t id)
             unit->do_del_metric(unit);
         }
     }
-    pthread_mutex_unlock(&(_watcher->plugin_lock));
+    pthread_rwlock_unlock(&(_watcher->plugin_lock));
     return 0;
 }
 
@@ -313,6 +366,8 @@ int _time_ring_move_forward(struct metric_unit *unit)
 
 int _start_collector(struct syswatcher *watcher)
 {
+    pthread_t id;
+    pthread_create(&id, NULL, list_data, NULL);
     return 0;
 }
 
@@ -329,5 +384,10 @@ void init_syswatcher(struct syswatcher *watcher)
     watcher->traversal_metric_units = _traversal_metric_units;
     watcher->start_collector = _start_collector;
     watcher->stop_collector = _stop_collector;
-    pthread_mutex_init(&(watcher->plugin_lock), NULL);
+    pthread_rwlock_init(&(watcher->plugin_lock), NULL);
+}
+
+void exit_syswatcher(struct syswatcher *watcher)
+{
+    pthread_rwlock_destroy(&(watcher->plugin_lock));
 }

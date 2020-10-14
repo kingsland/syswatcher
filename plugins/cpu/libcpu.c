@@ -1,4 +1,4 @@
-#include <plugin_ext_def.h>
+#include <plugin_def.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -6,7 +6,7 @@
 #include <gm_file.h>
 #include <cpu_data.h>
 char buffer[BUFFSIZE];
-timely_file cpu_stat    = { {0,0} , 1., "/proc/stat", buffer, BUFFSIZE };
+timely_file cpu_stat    = { {0,0} , 0, "/proc/stat", buffer, BUFFSIZE };
 char filebuf[BUFFSIZE];
 int cpu_data_collect(item_t *data);
 int cpu_spec_collect(item_t *data);
@@ -40,7 +40,7 @@ plugin_info_t pluginfo = {
 int cpu_spec_collect(item_t *data)
 {
     item_t *data_set = data;
-    data_set->elememt_num = 2;
+    data_set->element_num = 2;
     sprintf(data_set->data[0].name, "cpu name");
     data_set->data[0].unit[0] = '\0';
     data_set->data[0].t = M_STRING;
@@ -75,7 +75,7 @@ int cpu_data_collect(item_t *data)
 
     p = update_file(&cpu_stat);
     mate_t *data_set = data->data;
-    data->elememt_num = items[1].data_count;
+    data->element_num = items[1].data_count;
     for (;core_idx < (corenum + 1); core_idx++) {
         cpu_idle.f = cpu_core_usage(core_idx, p);
         cpu_usage.f = 100.0 - cpu_idle.f;

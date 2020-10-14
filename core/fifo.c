@@ -12,7 +12,7 @@ void _push(struct fifo_head *fifo, struct fifo_node *node)
     }
     //FIXME
     //add notification
-    list_add(&(fifo->head), &(node->node));
+    list_add(&(node->node), &(fifo->head));
     pthread_mutex_unlock(&(fifo->fifo_mtx));
 }
 

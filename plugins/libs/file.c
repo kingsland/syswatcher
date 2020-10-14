@@ -11,7 +11,7 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include <gm_file.h>
-#include <plugin_ext_def.h>
+#include <plugin_def.h>
 
 /**
  * @fn int slurpfile ( char * filename, char **buffer, int buflen )

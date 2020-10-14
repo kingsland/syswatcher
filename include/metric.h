@@ -51,7 +51,7 @@ struct metric_unit {
 
 struct syswatcher {
     struct list_head metrics_head;
-    pthread_mutex_t plugin_lock;
+    pthread_rwlock_t plugin_lock;
     int (*add_metric)(void *watcher, plugin_channel_t *plugin_metrics);
     int (*del_metric)(void *watcher, plugin_key_t id);
     pthread_t traversal_thread_id;
@@ -62,6 +62,7 @@ struct syswatcher {
 };
 
 void init_syswatcher(struct syswatcher *watcher);
+void exit_syswatcher(struct syswatcher *watcher);
 
 struct syswatcher watcher;
 void list_metric(void);

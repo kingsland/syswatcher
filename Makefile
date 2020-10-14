@@ -3,7 +3,7 @@ IPMISERVER_DIR=ipmiserver
 PLUGINS_DIR=plugins
 TOOLS_DIR=tools
 
-all:firmware plugin tool #ipmisrv 
+all:firmware plugin tool #ipmisrv
 firmware:
 	make -C ./$(CORE_DIR)
 plugin:
