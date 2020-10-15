@@ -168,11 +168,11 @@ void metric_info(struct metric_unit *unit)
         printf("    |--sub metric: %s\n", subunit->sub_metric_name);
         item_t *data = subunit->data_collection;
         int count;
-        char val_str[32];
+        char val_str[MAX_STRING_SIZE];
         for (count = 0; count < data->element_num; count++) {
             printf("        |--%s ", data->data[count].name);
             print_val(data->data[count].t, data->data[count].val, val_str);
-            printf("%s%s\n", val_str, data->data[count].unit);
+            printf("%s%s\n", val_str, strcmp(data->data[count].unit, UNIT_NA)?data->data[count].unit:"");
         }
     }
 }

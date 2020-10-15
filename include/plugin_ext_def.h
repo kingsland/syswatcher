@@ -16,8 +16,9 @@
 #define PLUGIN_NAME_LENGTH      (64)
 #define PLUGIN_DESC_LENGTH      (1024)
 #define MAX_STRING_SIZE         (128)
-#define DATA_NAME_LENGTH        (16)
+#define DATA_NAME_LENGTH        (32)
 
+#define UNIT_NA "N/A"
 typedef unsigned long long plugin_key_t;
 
 typedef enum data_type {
