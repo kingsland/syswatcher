@@ -87,8 +87,6 @@ void set_data_collect(mate_t *data_set, char *name,
     data_set->val = v;
 }
 
-int send_data(item_t *data);
-
 int cpu_data_collect(item_t *data)
 {
     char *p;
