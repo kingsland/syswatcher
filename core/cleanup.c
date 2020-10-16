@@ -20,7 +20,7 @@ void delete_all_metric(void) {
 }
 
 void stop_collector(void) {
-    watcher.stop_collector(&watcher);
+    watcher.collector.stop_collector(&(watcher.collector));
 }
 
 void cleanup(void)

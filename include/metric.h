@@ -5,6 +5,7 @@
 #include <time.h>
 #include <defs.h>
 #include <pthread.h>
+#include <collector.h>
 
 #define RING_STEP   (1)
 
@@ -56,9 +57,8 @@ struct syswatcher {
     int (*del_metric)(void *watcher, plugin_key_t id);
     pthread_t traversal_thread_id;
     pthread_t recycle_thread_id;
+    struct data_collector collector;
     void (*traversal_metric_units)(struct syswatcher *watcher);
-    int (*start_collector)(struct syswatcher *watcher);
-    int (*stop_collector)(struct syswatcher *watcher);
 };
 
 void init_syswatcher(struct syswatcher *watcher);

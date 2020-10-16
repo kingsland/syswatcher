@@ -99,7 +99,7 @@ main() {
     signal_register();
     init_syswatcher(&watcher);
     plugin_server_start(watcher.add_metric, watcher.del_metric, &watcher);
-    watcher.start_collector(&watcher);
+    watcher.collector.start_collector(&(watcher.collector));
     watcher.traversal_metric_units((void *)&watcher);
     return 0;
 }

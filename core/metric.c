@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <pthread.h>
+#include <cJSON.h>
 #include <fifo.h>
 struct metric_unit *make_unit(void);
 struct sub_metric_unit *make_subunit(char *name,
@@ -158,21 +159,37 @@ void print_val(data_type t, val_t val, char *val_str)
     }
 }
 
-void metric_info(struct metric_unit *unit)
+void metric_info(struct metric_unit *unit, char *metric_data, cJSON *root)
 {
     struct list_head *pos;
     struct sub_metric_unit *subunit;
-    printf("metric: %s\n", unit->metric_name);
+    char tmpstr[MAX_STRING_SIZE*2];
+    cJSON * metric =  cJSON_CreateObject();
+    sprintf(tmpstr, "metric: %s\n", unit->metric_name);
+    cJSON_AddItemToObject(root, unit->metric_name, metric);
+    cJSON_AddItemToObject(metric, "description", cJSON_CreateString(unit->metric_description));
+    strncat(metric_data, tmpstr, strlen(tmpstr));
+
     list_for_each(pos, &(unit->sub_node_head)) {
         subunit = container_of(pos, struct sub_metric_unit, sub_node);
-        printf("    |--sub metric: %s\n", subunit->sub_metric_name);
+        cJSON *submetric = cJSON_CreateObject();
+        cJSON_AddItemToObject(metric, subunit->sub_metric_name, submetric);
+        cJSON_AddItemToObject(submetric, "description", cJSON_CreateString(subunit->sub_metric_description));
+        sprintf(tmpstr, "    |--sub metric: %s\n", subunit->sub_metric_name);
+        strncat(metric_data, tmpstr, strlen(tmpstr));
         item_t *data = subunit->data_collection;
         int count;
         char val_str[MAX_STRING_SIZE];
         for (count = 0; count < data->element_num; count++) {
-            printf("        |--%s ", data->data[count].name);
+            sprintf(tmpstr, "        |--%s ", data->data[count].name);
+            strncat(metric_data, tmpstr, strlen(tmpstr));
             print_val(data->data[count].t, data->data[count].val, val_str);
-            printf("%s%s\n", val_str, strcmp(data->data[count].unit, UNIT_NA)?data->data[count].unit:"");
+            sprintf(tmpstr, "%s%s\n", val_str, strcmp(data->data[count].unit, UNIT_NA)?data->data[count].unit:"");
+            strncat(metric_data, tmpstr, strlen(tmpstr));
+            cJSON *data_item = cJSON_CreateObject();
+            cJSON_AddItemToObject(submetric, data->data[count].name, data_item);
+            cJSON_AddItemToObject(data_item, "value", cJSON_CreateString(val_str));
+            cJSON_AddItemToObject(data_item, "unit", cJSON_CreateString(data->data[count].unit));
         }
     }
 }
@@ -181,14 +198,27 @@ void *list_data(void *arg)
 {
     struct list_head *pos;
     struct metric_unit *unit;
+    struct data_collector *collector;
+    char visual_data[COLLECTOR_BUFFER];
+    char metric_data[METRIC_DATA_BUFFER];
+    collector = &(watcher.collector);
     while(1) {
         sleep(1);
+        bzero(visual_data, COLLECTOR_BUFFER);
+        cJSON * root =  cJSON_CreateObject();
         pthread_rwlock_rdlock(&(watcher.plugin_lock));
+        pthread_rwlock_wrlock(&(collector->data_lock));
         list_for_each(pos, &(watcher.metrics_head)) {
             unit = container_of(pos, struct metric_unit, node);
-            metric_info(unit);
+            bzero(metric_data, METRIC_DATA_BUFFER);
+            metric_info(unit, metric_data, root);
+            strncat(visual_data, metric_data, strlen(metric_data));
         }
+        pthread_rwlock_unlock(&(collector->data_lock));
         pthread_rwlock_unlock(&(watcher.plugin_lock));
+        sprintf(watcher.collector.visual_data, "%s", visual_data);
+        sprintf(watcher.collector.json_data, "%s", cJSON_Print(root));
+        cJSON_Delete(root);
     }
     return NULL;
 }
@@ -364,27 +394,14 @@ int _time_ring_move_forward(struct metric_unit *unit)
     return trigger;
 }
 
-int _start_collector(struct syswatcher *watcher)
-{
-    pthread_t id;
-    pthread_create(&id, NULL, list_data, NULL);
-    return 0;
-}
-
-int _stop_collector(struct syswatcher *watcher)
-{
-    return 0;
-}
-
 void init_syswatcher(struct syswatcher *watcher)
 {
     INIT_LIST_HEAD(&(watcher->metrics_head));
     watcher->add_metric = _add_metric;
     watcher->del_metric = _del_metric;
     watcher->traversal_metric_units = _traversal_metric_units;
-    watcher->start_collector = _start_collector;
-    watcher->stop_collector = _stop_collector;
     pthread_rwlock_init(&(watcher->plugin_lock), NULL);
+    init_collector(&(watcher->collector), list_data);
 }
 
 void exit_syswatcher(struct syswatcher *watcher)
