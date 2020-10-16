@@ -1,0 +1,6 @@
+#!/bin/bash
+plugins=`ls /usr/local/lib/syswatcher`
+for plugin in $plugins
+do
+    /usr/bin/ldsyswatcher_plg load /usr/local/lib/syswatcher/$plugin
+done

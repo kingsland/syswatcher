@@ -1,0 +1,12 @@
+[Unit]
+Description=syswatcher
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/syswatcher
+ExecStartPost=/usr/bin/syswatcher_ldplg
+ExecStop=/bin/killall syswatcher
+PrivateTmp=false
+
+[Install]
+WantedBy=multi-user.target
