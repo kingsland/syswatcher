@@ -12,3 +12,4 @@ cp tools/ldsyswatcher_plg ${DIR}
 cp `find ./plugins | grep .so$` ${DIR}
 tar cf ${DIR}.tar ${DIR}
 make clean
+rm -rf ${DIR}
