@@ -94,7 +94,8 @@ int find_cputemp_entry(char *hwmon_entry)
     len = read(fd, hwmon_name, 16);
     close(fd);
     if (len > 0) {
-        if (strncmp(hwmon_name, "coretemp", strlen("coretemp")) == 0) {
+        if ((strncmp(hwmon_name, "coretemp", strlen("coretemp")) == 0) ||
+            (strncmp(hwmon_name, "cpu-hwmon", strlen("cpu-hwmon")) == 0)) {
             return 0;
         }
     }
