@@ -5,7 +5,7 @@ Description=syswatcher
 Type=simple
 ExecStart=/usr/bin/syswatcher
 ExecStartPost=/usr/bin/syswatcher_ldplg
-ExecStop=/bin/killall syswatcher
+ExecStop=/usr/bin/killall syswatcher
 PrivateTmp=false
 
 [Install]

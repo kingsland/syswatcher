@@ -201,6 +201,7 @@ void *list_data(void *arg)
     struct data_collector *collector;
     char visual_data[COLLECTOR_BUFFER];
     char metric_data[METRIC_DATA_BUFFER];
+    char *json_str;
     collector = &(watcher.collector);
     while(1) {
         sleep(1);
@@ -217,7 +218,9 @@ void *list_data(void *arg)
         pthread_rwlock_unlock(&(collector->data_lock));
         pthread_rwlock_unlock(&(watcher.plugin_lock));
         sprintf(watcher.collector.visual_data, "%s", visual_data);
-        sprintf(watcher.collector.json_data, "%s", cJSON_Print(root));
+        json_str = cJSON_Print(root);
+        sprintf(watcher.collector.json_data, "%s", json_str);
+        free(json_str);
         cJSON_Delete(root);
     }
     return NULL;
