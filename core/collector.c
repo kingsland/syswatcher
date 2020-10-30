@@ -7,10 +7,13 @@
 #include <log.h>
 #include <unistd.h>
 
-void reuse_socket(int fd) {
+void reuse_socket(int fd)
+{
     int reuse = 1;
+    struct linger lg = {1, 0};
     setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int));
     setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(int));
+    setsockopt(fd, SOL_SOCKET, SO_LINGER, &lg, sizeof(struct linger));
 }
 
 int init_srv(int port)
@@ -50,6 +53,7 @@ void *resp_thread(void *arg)
         //FIXME
         cli_fd = accept(listenfd, (struct sockaddr *)&cliaddr, &len);
         write(cli_fd, collector->visual_data, strlen(collector->visual_data));
+	usleep(10);
         close(cli_fd);
     }
 }
@@ -66,6 +70,7 @@ void *json_resp_thread(void *arg)
         //FIXME
         cli_fd = accept(listenfd, (struct sockaddr *)&cliaddr, &len);
         write(cli_fd, collector->json_data, strlen(collector->json_data));
+	usleep(10);
         close(cli_fd);
     }
 }
