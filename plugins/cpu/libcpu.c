@@ -104,6 +104,7 @@ int cpu_data_collect(item_t *data)
         cpu_user.f = core_user_usage(core_idx, p);
         cpu_sys.f = core_sys_usage(core_idx, p);
         cpu_iowait.f = core_iowait_usage(core_idx, p);
+#if 0
         if (core_idx != 0) {
             sprintf(tmp, "cpu%d", core_idx);
         } else {
@@ -125,6 +126,34 @@ int cpu_data_collect(item_t *data)
         }
     }
     run_count++;
+#endif
+	if(core_idx ==0){
+		if (core_idx != 0) {
+			sprintf(tmp, "cpu%d", core_idx);
+		} else {
+			sprintf(tmp, "cpu total");
+		}
+		if (run_count != 0) {
+			int count = 0;
+			core_idx ==0; 
+			sprintf(name, "%s usage", tmp);
+			set_data_collect(&(data_set[core_idx*(DATA_PER_CORE) + count++]), name, "%", M_FLOAT, cpu_usage);
+
+			sprintf(name, "%s user", tmp);
+			set_data_collect(&(data_set[core_idx*(DATA_PER_CORE) + count++]), name, "%", M_FLOAT, cpu_user);
+
+			sprintf(name, "%s system", tmp);
+			set_data_collect(&(data_set[core_idx*(DATA_PER_CORE) + count++]), name, "%", M_FLOAT, cpu_sys);
+
+			sprintf(name, "%s iowait", tmp);
+			set_data_collect(&(data_set[core_idx*(DATA_PER_CORE) + count++]), name, "%", M_FLOAT, cpu_iowait);
+		}
+	}else{
+		break;
+	}
+    }
+    run_count++;  //hxj
+
     return 0;
 }
 
@@ -134,7 +163,8 @@ PLUGIN_ENTRY(cpu, plugin_info)
     stat = update_file(&cpu_stat);
     corenum = get_core_num(stat);
     num_cpustates = num_cpustates_func(stat);
-    items[1].data_count = (corenum + 1) * (DATA_PER_CORE);
+    //items[1].data_count = (corenum + 1) * (DATA_PER_CORE);
+    items[1].data_count = 4;
 
     PLUGIN_INIT(plugin_info, items, &pluginfo);
     return 0;
