@@ -58,45 +58,6 @@ int os_release_collect(item_t *data)
     sprintf(data->data[1].name, "version");
     data->data[1].t = M_STRING;
     sprintf(data->data[1].val.str, "%s", strpstr_ver);
-
-
-
-#if 0
-        #define LSB_FILE    "/home/juan/work/cVPX6-EON-D-XK-2/kyinfo"
-        #define SPVERS_STR  "dist_id="
-        uint8_t spVersionH, spVersionL;
-        // uint32_t revision;
-        int fd;
-        char content[FILELEN];
-        char *strptr, *changeline;
-        struct stat buf;
-        if (stat(LSB_FILE, &buf) < 0) {
-            spVersionH = 0xf;
-            spVersionL = 0xf;
-        } else {
-            fd = open(LSB_FILE, O_RDONLY);
-            read(fd, content, FILELEN);
-            strptr = strstr(content, SPVERS_STR);
-            if (strstr == NULL) {
-                spVersionH = 0xf;
-                spVersionL = 0xf;
-            } else {
-                strptr = strstr(strptr, "=");
-                strptr = strstr(strptr, "sp");
-                changeline = strstr(strptr, "\n");
-                *changeline = '\0';
-                strptr += 2;
-                spVersionL = 0;
-                sscanf(strptr, "%hhu", &spVersionH);
-            }
-
-            close(fd);
-        }
-
-        sprintf(data->data[0].name, "OS Revision:");
-        data->data[0].t = M_UINT32;
-        data->data[0].val.uint32= (spVersionH<<4) | (spVersionL);
- #endif
     return 0;
 }
 
@@ -112,9 +73,9 @@ int bios_release_collect(item_t *data)
 
 collect_item_t items[] = {
     {
-        .item_name = "OS-Iinformation",
+        .item_name = "OS-Information",
         .item_desc = "system version",
-        .run_once = false,
+        .run_once = 1,
         .collect_data_func = os_release_collect,
         .interval = 1,
         .data_count = 2,
@@ -123,7 +84,7 @@ collect_item_t items[] = {
     {
         .item_name = "BIOS-Infortion",
         .item_desc = "it is bios version",
-        .run_once = false,
+        .run_once = 1,
         .collect_data_func = bios_release_collect,
         .interval = 1,
         .data_count = 1,

@@ -3,9 +3,11 @@ all:
 	make -C memory
 	make -C disk
 	make -C temp
+	make -C sysinfo
 
 clean: 
 	make -C cpu clean
 	make -C memory clean
 	make -C disk clean
 	make -C temp clean
+	make -C sysinfo clean
