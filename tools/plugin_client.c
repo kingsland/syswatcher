@@ -4,6 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <strings.h>
 #include "plugin_protocol.h"
 #include "srm_errno.h"
 
@@ -64,22 +65,25 @@ int main(int argc, char* argv[])
     int len = 4, wt_len, wl_len;
     plugin_cmd_t cmd = {0x0};
     char *plugin_path = NULL;
-
-    if (argc != 3) {
+    if (argc < 3) {
         help_information(strrchr(argv[0], '/')+1);
         ret = SRM_PARAMETER_ERR;
     } else {
+        cmd.argc = argc - 3;
         plugin_path = plugin_path_parser(argv[2]);
         if (plugin_path == NULL)
             ret = SRM_PARAMETER_ERR;
 
-        if (!strncmp(argv[1], "load", 4))
+        if (!strncmp(argv[1], "load", 4)) {
+            printf("load ");
             type = 0;
-        else if (!strncmp(argv[1], "unload", 6))
+        } else if (!strncmp(argv[1], "unload", 6)) {
+            printf("unload ");
             type = 1;
-        else if (!strncmp(argv[1], "reload", 6))
+        } else if (!strncmp(argv[1], "reload", 6)) {
+            printf("reload ");
             type = 2;
-        else {
+        } else {
             help_information(strrchr(argv[0], '/')+1);
             ret = SRM_PARAMETER_ERR;
         }
@@ -90,31 +94,22 @@ int main(int argc, char* argv[])
                 ERROR_INFO("The SRM is not running,please start the SRM or contact the administrator first.");
                 ret = SRM_PARAMETER_ERR;
             } else {
+                int idx = 0;
+                int arg_len;
                 cmd.type = (type & 0x0F) | 0x90;
                 cmd.flag = 0x6B;
-                cmd.size = strlen(plugin_path) + 1;
-                memcpy(cmd.buffer, plugin_path, cmd.size);
-                cmd.buffer[cmd.size -1] = '\0';
-                len += cmd.size;
-
-                for (int i=0; i<cmd.size+4; i++)
-                    printf("%02X ",((char*)(&cmd))[i]);
+                sprintf(cmd.path, "%s", plugin_path);
+                printf("%s ", cmd.path);
+                bzero(cmd.argv, MAX_ARGV * ARGV_LEN);
+                for (idx = 0; (idx < cmd.argc) && (idx < MAX_ARGV); idx++) {
+                    bzero(cmd.argv[idx], ARGV_LEN);
+                    arg_len = strlen(argv[idx + 3]) + 1;
+                    snprintf(cmd.argv[idx], arg_len > ARGV_LEN?ARGV_LEN:arg_len,
+                        "%s", argv[idx + 3]);
+                    printf("%s ", cmd.argv[idx]);
+                }
                 printf("\n");
-                for (int i=4; i<cmd.size+4; i++)
-                    printf("%c",((char*)(&cmd))[i]);
-                printf("\n");
-
-                len = 4+cmd.size;
-                wl_len = write(fd, &cmd, len);
-
-                /*while (len > 0) {
-                    wl_len = write(fd, ((char*)(&cmd))+wt_len, len);
-                    if (wl_len < 0)
-                        perror("write");
-                    wt_len += wl_len;
-                    len -= wl_len;
-                }*/
-
+                wl_len = write(fd, &cmd, sizeof(plugin_cmd_t));
                 close(fd);
             }
 

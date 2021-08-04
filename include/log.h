@@ -42,7 +42,7 @@ struct logger {
     void (*clear_all_bufferd_msg)(struct logger *log_unit);
 };
 
-struct logger log_unit;
+extern struct logger log_unit;
 int init_logger(struct logger *log_unit, enum log_level level);
 void exit_logger(struct logger *log_unit);
 void logging(enum log_level level, const char *fmt, ...);

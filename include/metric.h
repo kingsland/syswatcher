@@ -38,6 +38,8 @@ struct metric_unit {
     struct      list_head sub_node_head;
     char        metric_name[METRIC_NAME_LENGTH];//app A
     char        metric_description[METRIC_DESC_LENGTH];
+    char        argc;
+    char        argv[MAX_ARGV][ARGV_LEN];
     plugin_key_t plugin_id;
     pthread_mutex_t unit_lock;
     thread_info *update_thread_info;
@@ -64,6 +66,6 @@ struct syswatcher {
 void init_syswatcher(struct syswatcher *watcher);
 void exit_syswatcher(struct syswatcher *watcher);
 
-struct syswatcher watcher;
+extern struct syswatcher watcher;
 void list_metric(void);
 #endif  //end of METRIC_H

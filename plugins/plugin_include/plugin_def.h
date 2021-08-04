@@ -7,15 +7,17 @@
 #define PLUGIN_EXIT(plugin_name, info)    \
     void plugin_name##_exit (plugin_info_t *info) \
 
-#define PLUGIN_INIT(info_dst, items, info_src)  \
+#define PLUGIN_INIT(mgr_info, items, plugin_info)  \
 {   \
     int count = 0;  \
-    memcpy((info_dst), (info_src), sizeof(plugin_info_t));  \
-    (info_dst)->version = PLUGIN_RELEASE_VERSION; \
-    (info_dst)->item_count = sizeof(items)/sizeof(collect_item_t);    \
-    (info_dst)->collect_item = (collect_item_t*)malloc(sizeof(collect_item_t)*(info_dst)->item_count);  \
-    for (;count < (info_dst)->item_count; count++) {  \
-        memcpy(&((info_dst)->collect_item[count]), &((items)[count]), sizeof(collect_item_t));  \
+    (plugin_info)->argc = (mgr_info)->argc;\
+    memcpy((plugin_info)->argv, (mgr_info)->argv, (ARGV_LEN*((mgr_info)->argc)));\
+    memcpy((mgr_info), (plugin_info), sizeof(plugin_info_t));  \
+    (mgr_info)->version = PLUGIN_RELEASE_VERSION; \
+    (mgr_info)->item_count = sizeof(items)/sizeof(collect_item_t);    \
+    (mgr_info)->collect_item = (collect_item_t*)malloc(sizeof(collect_item_t)*(mgr_info)->item_count);  \
+    for (;count < (mgr_info)->item_count; count++) {  \
+        memcpy(&((mgr_info)->collect_item[count]), &((items)[count]), sizeof(collect_item_t));  \
     }   \
 }
 

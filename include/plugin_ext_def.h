@@ -6,7 +6,7 @@
 #include <stdbool.h>
 
 /* !!!!!  plugin_info_t->version = PLUGIN_RELEASE_VERSION  */
-#define PLUGIN_RELEASE_VERSION  "v0.0.1"
+#define PLUGIN_RELEASE_VERSION  "v0.1.0"
 
 #define ITEM_NAME_LENGTH    64
 #define ITEM_DESC_LENGTH   1024
@@ -17,6 +17,8 @@
 #define PLUGIN_DESC_LENGTH      (1024)
 #define MAX_STRING_SIZE         (128)
 #define DATA_NAME_LENGTH        (32)
+#define MAX_ARGV                (64)
+#define ARGV_LEN                (128)
 
 #define UNIT_NA "N/A"
 typedef unsigned long long plugin_key_t;
@@ -81,9 +83,16 @@ typedef struct plugin_info
     char *version;
     collect_item_t *collect_item;
     unsigned item_count;
+    int argc;
+    char argv[MAX_ARGV][ARGV_LEN];
 }plugin_info_t;
 
 void plugin_print_log(const char *fmt, ...);
+
+/*
+ * return NULL or value
+ */
+char *find_param(plugin_info_t *plugin_info, char *key);
 
 #endif /* __plugin_ext_def_h__ */
 

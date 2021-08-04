@@ -6,7 +6,7 @@
 
 #define SRM_OK                    0x0                                 /* sucess. */
 
-#define SRM_ERR_NO_BASE                         0x1                  /*  NO OF BASE FOR ERROR */
+#define SRM_ERR_NO_BASE                         0x2                  /*  NO OF BASE FOR ERROR */
 #define SRM_VERSION_MISMATCH_ERR        (SRM_ERR_NO_BASE)           /* Plugin version does not match the SRM version. */
 #define SRM_ALREADY_REG_ERR             (SRM_ERR_NO_BASE + 0x1)     /* Plugin already register on SRM system. */
 #define SRM_REGISTER_ERR                (SRM_ERR_NO_BASE + 0x2)     /* Wrong registration information. */

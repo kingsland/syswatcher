@@ -89,25 +89,21 @@ int plugin_parser(plugin_mgr_t* mgr, plugin_cmd_t *cmd)
 {
     int ret = SRM_OK;
     size_t dlname_size;
-    char *p1;
     plugin_t *plugin_node = NULL;
     char  plugin_name[PLUGIN_MGR_NAME_LENGTH] = {0x0};
     int  plugin_name_len;
 
     /* Extra dyanmic info and name of plugin */
-    char *p = strrchr(cmd->buffer, '/');
+    char *p = strrchr(cmd->path, '/');
     if (p == NULL)
-        p = (char*)(cmd->buffer);
+        p = (char*)(cmd->path);
     else
         p++;
-    p1 = (char*)(cmd->buffer);
-
-    /* get dynamic name by point p1 */
-    dlname_size = (size_t)(p1 + cmd->size - p);
+    dlname_size = strlen(p);
     memcpy(plugin_name, p+3, dlname_size-3);
     /* plugin name.  eg:libpluginAA.so -- pluginAA */
     plugin_name_len = dlname_size-6 % PLUGIN_MGR_NAME_LENGTH;
-    plugin_name[plugin_name_len- 1] = '\0';
+    plugin_name[plugin_name_len] = '\0';
 
     plugin_node = plugin_search_by_name(mgr, plugin_name);
     if (plugin_node != NULL) {
@@ -129,10 +125,12 @@ int plugin_parser(plugin_mgr_t* mgr, plugin_cmd_t *cmd)
             case 0x0:
                 plugin_node = (plugin_t*)malloc(sizeof(plugin_t));
                 if (plugin_node != NULL) {
-                    memcpy(plugin_node->name, plugin_name, plugin_name_len);
-                    plugin_node->name[plugin_name_len - 1] = '\0';
-                    memcpy(plugin_node->path, cmd->buffer, cmd->size);
-                    plugin_node->path[cmd->size % PLUGIN_MGR_PATH_LENGTH] = '\0';
+                    bzero(plugin_node->name, sizeof(plugin_node->name));
+                    bzero(plugin_node->path, sizeof(plugin_node->path));
+                    sprintf(plugin_node->name, "%s", plugin_name);
+                    sprintf(plugin_node->path, "%s", cmd->path);
+                    memcpy(plugin_node->plugin_info.argv, cmd->argv, sizeof(cmd->argv));
+                    plugin_node->plugin_info.argc = cmd->argc;
                     /* Initialize assgin */
                     plugin_node->id = PLUGIN_MGR_INVALID_ID;
                     plugin_node->handler = NULL;
@@ -294,4 +292,27 @@ int plugin_unload(plugin_mgr_t* mgr, plugin_t *plugin_node)
     return ret;
 }
 
+char *find_param(plugin_info_t *plugin_info, char *key) {
+    char *p;
+    int idx;
+    if (plugin_info == NULL || (plugin_info->argc == 0)
+        || (key == NULL) || (strlen(key) == 0)) {
+        return NULL;
+    }
+    for (idx = 0; idx < plugin_info->argc; idx++) {
+        if (strstr(plugin_info->argv[idx], key)) {
+            p = plugin_info->argv[idx];
+            p += strlen(key);
+            while (*p == ' ') {
+                p++;
+            }
+            if (*p != '=') {
+                continue;
+            }
+            p++;
+            return p;
+        }
+    }
 
+    return NULL;
+}

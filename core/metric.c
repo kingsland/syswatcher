@@ -6,6 +6,7 @@
 #include <pthread.h>
 #include <cJSON.h>
 #include <fifo.h>
+struct syswatcher watcher;
 struct metric_unit *make_unit(void);
 struct sub_metric_unit *make_subunit(char *name,
         char *description, int32_t run_time, time_t interval,

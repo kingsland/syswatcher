@@ -257,7 +257,7 @@ static void* plugin_run(void* args)
                     continue;
 
                 /* read body of message */
-                len = cmd_data.size;
+                len = sizeof(plugin_cmd_t) - 4;
                 read(fd, p+4, len);
 
                 /* plugin parser and register or unregister op. */

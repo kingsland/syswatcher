@@ -11,6 +11,7 @@
 #define HEADER_LEN  (30)
 #define HEADER_NUM  (20)
 char header_str[][HEADER_NUM] = HEADER_STR;
+struct logger log_unit;
 
 void make_msg(struct log_msg *msg, char *sysmsg)
 {

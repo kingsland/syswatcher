@@ -128,18 +128,20 @@ int cpu_data_collect(item_t *data)
     return 0;
 }
 
-int sum_only = 1;
 PLUGIN_ENTRY(cpu, plugin_info)
 {
     char *stat;
+    int idx;
+    char *sum;
     stat = update_file(&cpu_stat);
-    corenum = get_core_num(stat);
-    if (sum_only) {
-        corenum = 0;
+    corenum = 0;
+    sum = find_param(plugin_info, "SUM");
+    if ((sum != NULL) &&
+        ((strcmp(sum, "false") == 0) || (strcmp(sum, "FALSE")))) {
+        corenum = get_core_num(stat);
     }
     num_cpustates = num_cpustates_func(stat);
     items[1].data_count = (corenum + 1) * (DATA_PER_CORE);
-
     PLUGIN_INIT(plugin_info, items, &pluginfo);
     return 0;
 }
