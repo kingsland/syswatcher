@@ -6,6 +6,7 @@ cp ./syswatcher_ldplg /usr/bin
 cp ./ldsyswatcher_plg /usr/bin
 mkdir $lib_path -p
 cp *.so $lib_path
+cp -r conf /etc/syswatcher
 cp syswatcher.service /lib/systemd/system/
 systemctl daemon-reload
 systemctl enable syswatcher

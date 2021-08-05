@@ -1,0 +1,17 @@
+[BUILD]
+edit config to choose which plugin to install, and what param to pass to.
+then type ./mk
+this will generate a packet like syswatcher_install_${git_commit}_${time}_${arch}.tar
+编辑文件config，选择需要的插件和传递给插件的参数。
+运行./mk脚本，正常情况下会生成一个tar包。
+
+[INSTALL]
+uncompress syswatcher_install_${git_commit}_${time}_${arch}.tar
+run install.sh as root
+解压压缩包，以root运行压缩包中的install.sh脚本
+
+[USAGE]
+nc localhost 3200	//this for a human readable view
+nc localhost 3201	//this for a json format
+访问3200端口可以获得一个可视化的数据界面
+访问3201端口可以获得一个jason格式的数据

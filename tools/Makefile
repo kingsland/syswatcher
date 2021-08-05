@@ -4,7 +4,8 @@ PLUGIN_C_OBJS=plugin_client.o
 
 INCLUDE=../include
 
-all: 
+all:${PLUGIN}
+${PLUGIN}:
 	gcc -std=c99 -g $(PLUGIN_C_SRCS) -I $(INCLUDE) -o $(PLUGIN) 
 
 clean:

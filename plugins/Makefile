@@ -1,13 +1,10 @@
-all:
-	make -C cpu
-	make -C memory
-	make -C disk
-	make -C temp
-	make -C sysinfo
+MOD=$(shell find . -maxdepth 1 | grep 'mod_')
+CLEAN=$(subst mod_,clean_,${MOD})
+.PHONY:${MOD}
+all:${MOD}
+${MOD}:
+	@make -C $@
 
-clean: 
-	make -C cpu clean
-	make -C memory clean
-	make -C disk clean
-	make -C temp clean
-	make -C sysinfo clean
+clean:${CLEAN}
+${CLEAN}:
+	@make -C $(subst clean_,mod_,$@) clean
