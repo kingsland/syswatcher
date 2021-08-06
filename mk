@@ -2,7 +2,7 @@
 CONF_PREFIX=conf
 COMPILE_CONF=config
 MODULES=$(cat $COMPILE_CONF | grep -n "^\[.*\]$" | awk -F '[":"\\[\\]]' '{print $1":"$3}')
-
+MODULES_TO_LOAD=
 gen_conf() {
 	ENDL=`cat $COMPILE_CONF | wc -l`
 	for MODULE in ${MODULES}
@@ -20,7 +20,9 @@ gen_conf() {
 			else
 			echo "" >$CONF_PREFIX/plugins/$CONF
 		fi
+        MODULES_TO_LOAD="$MODULES_TO_LOAD lib${MODULE#*:}.so"
 	done
+    echo "MODULES_TO_LOAD =$MODULES_TO_LOAD" >$CONF_PREFIX/syswatcher.conf
 }
 RELEASE=`git log --oneline -n1 HEAD | cut -d ' ' -f 1`
 BUILDDATE=$(date "+%Y%m%d")

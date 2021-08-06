@@ -1,6 +1,12 @@
 #!/bin/bash
-plugins=`ls /usr/local/lib/syswatcher`
-for plugin in $plugins
+CONF_DIR=/etc/syswatcher
+MAIN_CONF=${CONF_DIR}/syswatcher.conf
+PLUGIN_CONF_PREFIX=${CONF_DIR}/plugins
+PLUGINS_TO_LOAD=`cat $MAIN_CONF| grep MODULES_TO_LOAD | awk -F '=' '{print $2}'`
+for PLUGIN in $PLUGINS_TO_LOAD
 do
-    /usr/bin/ldsyswatcher_plg load /usr/local/lib/syswatcher/$plugin
+    CONF=${PLUGIN#lib}
+    CONF=${CONF%.so}.conf
+    PARAMS=`cat $PLUGIN_CONF_PREFIX/$CONF`
+    /usr/bin/ldsyswatcher_plg load /usr/local/lib/syswatcher/$PLUGIN $PARAMS
 done
