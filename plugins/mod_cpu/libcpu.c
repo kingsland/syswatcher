@@ -137,7 +137,7 @@ PLUGIN_ENTRY(cpu, plugin_info)
     corenum = 0;
     sum = find_param(plugin_info, "SUM");
     if ((sum != NULL) &&
-        ((strcmp(sum, "false") == 0) || (strcmp(sum, "FALSE")))) {
+        ((strcmp(sum, "false") == 0) || (strcmp(sum, "FALSE") == 0))) {
         corenum = get_core_num(stat);
     }
     num_cpustates = num_cpustates_func(stat);
