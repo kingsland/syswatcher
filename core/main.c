@@ -10,7 +10,7 @@
 #include <plugin_server.h>
 #include <log.h>
 #include <fifo.h>
-
+#include <vers.h>
 void exit_action(int signo) {
     cleanup();
     exit(0);
@@ -60,9 +60,8 @@ void print_banner(void)
 {
     logging(LEVEL_ZERO, "[           syswatcher          ]\n");
     logging(LEVEL_ZERO, "=================================\n");
-    logging(LEVEL_ZERO, "name:\n");
-    logging(LEVEL_ZERO, "version:\n");
-    logging(LEVEL_ZERO, "compile time:\n");
+    logging(LEVEL_ZERO, "version: %s\n", vers_info);
+    logging(LEVEL_ZERO, "compile time: %s\n", time_info);
     logging(LEVEL_ZERO, "=================================\n");
 }
 

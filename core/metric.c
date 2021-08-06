@@ -334,6 +334,7 @@ int _add_metric(void *watcher, plugin_channel_t *plugin_metrics)
     strcpy(unit->metric_description, plugin_metrics->desc);
     unit->plugin_id = plugin_metrics->plugin_id;
     unit->exiting = 0;
+    logging(LEVEL_INFO, "add metric: %s\n", unit->metric_name);
     for (count = 0; count < sub_metric_num; count++) {
         struct sub_metric_unit *subunit =
                 make_subunit((plugin_sub_metric + count)->subname,
@@ -342,13 +343,13 @@ int _add_metric(void *watcher, plugin_channel_t *plugin_metrics)
                             (plugin_sub_metric + count)->interval,
                             &(plugin_sub_metric + count)->item,
                             (plugin_sub_metric + count)->collect_data_func);
+        logging(LEVEL_INFO, "  |--sub metric: %s\n", subunit->sub_metric_name);
         unit->add_sub_metric(unit, subunit);
     }
     unit->update_thread_info = make_ti(unit);
     pthread_rwlock_wrlock(&(_watcher->plugin_lock));
     list_add_tail(&(unit->node), &(_watcher->metrics_head));
     pthread_rwlock_unlock(&(_watcher->plugin_lock));
-    logging(LEVEL_INFO, "add metric\n");
     return 0;
 }
 
