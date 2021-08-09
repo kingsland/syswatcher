@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <dlfcn.h>
 #include <unistd.h>
+#include <log.h>
 #include "list.h"
 #include "srm_errno.h"
 
@@ -147,8 +148,15 @@ int plugin_parser(plugin_mgr_t* mgr, plugin_cmd_t *cmd)
                     plugin_node->notify_info.plugin_id = PLUGIN_MGR_INVALID_ID;
                     plugin_node->notify_info.name[0] = '\0';
                     plugin_node->notify_info.desc[0] = '\0';
+                    plugin_node->load_flags = 0;
                     /* load operation */
-                    plugin_load(mgr, plugin_node);
+                    ret = plugin_load(mgr, plugin_node);
+                    if (SRM_OK != ret) {
+                        plugin_unload(mgr, plugin_node);
+                        free(plugin_node);
+                        plugin_node = NULL;
+                        logging(LEVEL_WARN, "load plugin failed\n");
+                    }
                 } else {
                     ret = SRM_ALLOC_SPACE_ERR;
                     ERROR_INFO("Alloc space of memory wrong.");
@@ -170,11 +178,13 @@ int plugin_parser(plugin_mgr_t* mgr, plugin_cmd_t *cmd)
 int plugin_load(plugin_mgr_t* mgr, plugin_t *plugin_node)
 {
     int ret = SRM_OK;
+    int init_ret = 0;
     char plugin_init_func_name[2048];
     char plugin_exit_func_name[2048];
 
     plugin_node->handler = dlopen(plugin_node->path, RTLD_LAZY);
     if (plugin_node->handler != NULL) {
+        plugin_node->load_flags |= PLUGIN_LOAD_DLOPEN;
         plugin_node->id = mgr->plugin_id_inc ++;
         plugin_node->flag = true;
         plugin_node->load_time = time(NULL);
@@ -184,54 +194,62 @@ int plugin_load(plugin_mgr_t* mgr, plugin_t *plugin_node)
                                 dlsym(plugin_node->handler, plugin_init_func_name);
         plugin_node->plugin_exit = (plugin_exit_func_t)
                                 dlsym(plugin_node->handler, plugin_exit_func_name);
-
-        plugin_node->plugin_init(&(plugin_node->plugin_info));
-        if (strncmp(plugin_node->plugin_info.version, PLUGIN_RELEASE_VERSION, strlen(PLUGIN_RELEASE_VERSION))) {
-            ret = SRM_VERSION_MISMATCH_ERR;
-            ERROR_INFO("Plugin version does not match the SRM version.");
+        init_ret = plugin_node->plugin_init(&(plugin_node->plugin_info));
+        if (init_ret != 0) {
+            ret = SRM_REGISTER_ERR;
+            logging(LEVEL_WARN, "plugin init failed\n");
         } else {
-            plugin_node->notify_info.plugin_id = plugin_node->id;
-            strncpy(plugin_node->notify_info.name, plugin_node->plugin_info.name, PLUGIN_NAME_LENGTH);
-            plugin_node->notify_info.name[PLUGIN_NAME_LENGTH - 1] = '\0';
-            strncpy(plugin_node->notify_info.desc, plugin_node->plugin_info.desc, PLUGIN_DESC_LENGTH);
-            plugin_node->notify_info.desc[PLUGIN_DESC_LENGTH - 1] = '\0';
-            plugin_node->notify_info.sub_metric_num = plugin_node->plugin_info.item_count;
-            plugin_node->notify_info.sub_channel =
-                    (plugin_sub_channel_t*)malloc(sizeof(plugin_sub_channel_t)*plugin_node->notify_info.sub_metric_num);
-            if (plugin_node->notify_info.sub_channel != NULL) {
-                for (int i=0; i<plugin_node->notify_info.sub_metric_num; i++) {
-                    strncpy(plugin_node->notify_info.sub_channel[i].subname,
-                            plugin_node->plugin_info.collect_item[i].item_name,
-                            PLUGIN_NAME_LENGTH);
-                    plugin_node->notify_info.sub_channel[i].subname[PLUGIN_NAME_LENGTH - 1] = '\0';
-                    strncpy(plugin_node->notify_info.sub_channel[i].subdesc,
-                            plugin_node->plugin_info.collect_item[i].item_desc,
-                            PLUGIN_DESC_LENGTH);
-                    plugin_node->notify_info.sub_channel[i].subdesc[PLUGIN_DESC_LENGTH - 1] = '\0';
-                    plugin_node->notify_info.sub_channel[i].run_once =
-                                            plugin_node->plugin_info.collect_item[i].run_once;
-                    plugin_node->notify_info.sub_channel[i].interval =
-                                            plugin_node->plugin_info.collect_item[i].interval;
-                    plugin_node->notify_info.sub_channel[i].collect_data_func =
-                                            plugin_node->plugin_info.collect_item[i].collect_data_func;
-                    plugin_node->notify_info.sub_channel[i].run_once =
-                                            plugin_node->plugin_info.collect_item[i].run_once;
-                    plugin_node->notify_info.sub_channel[i].item.element_num =
-                                            plugin_node->plugin_info.collect_item[i].data_count;
-                    plugin_node->notify_info.sub_channel[i].item.data =
-                                    (mate_t*)malloc(sizeof(mate_t)*plugin_node->notify_info.sub_channel[i].item.element_num);
-                    if (plugin_node->notify_info.sub_channel[i].item.data == NULL) {
-                        plugin_node->notify_info.sub_channel[i].item.element_num = 0;
+            plugin_node->load_flags |= PLUGIN_LOAD_INIT;
+            if (strncmp(plugin_node->plugin_info.version, PLUGIN_RELEASE_VERSION, strlen(PLUGIN_RELEASE_VERSION))) {
+                ret = SRM_VERSION_MISMATCH_ERR;
+                logging(LEVEL_WARN, "Plugin version does not match the SRM version.");
+            } else {
+                ret = SRM_OK;
+                plugin_node->load_flags |= PLUGIN_LOAD_VERS_CHECK;
+                plugin_node->notify_info.plugin_id = plugin_node->id;
+                strncpy(plugin_node->notify_info.name, plugin_node->plugin_info.name, PLUGIN_NAME_LENGTH);
+                plugin_node->notify_info.name[PLUGIN_NAME_LENGTH - 1] = '\0';
+                strncpy(plugin_node->notify_info.desc, plugin_node->plugin_info.desc, PLUGIN_DESC_LENGTH);
+                plugin_node->notify_info.desc[PLUGIN_DESC_LENGTH - 1] = '\0';
+                plugin_node->notify_info.sub_metric_num = plugin_node->plugin_info.item_count;
+                plugin_node->notify_info.sub_channel =
+                        (plugin_sub_channel_t*)malloc(sizeof(plugin_sub_channel_t)*plugin_node->notify_info.sub_metric_num);
+                if (plugin_node->notify_info.sub_channel != NULL) {
+                    for (int i=0; i<plugin_node->notify_info.sub_metric_num; i++) {
+                        strncpy(plugin_node->notify_info.sub_channel[i].subname,
+                                plugin_node->plugin_info.collect_item[i].item_name,
+                                PLUGIN_NAME_LENGTH);
+                        plugin_node->notify_info.sub_channel[i].subname[PLUGIN_NAME_LENGTH - 1] = '\0';
+                        strncpy(plugin_node->notify_info.sub_channel[i].subdesc,
+                                plugin_node->plugin_info.collect_item[i].item_desc,
+                                PLUGIN_DESC_LENGTH);
+                        plugin_node->notify_info.sub_channel[i].subdesc[PLUGIN_DESC_LENGTH - 1] = '\0';
+                        plugin_node->notify_info.sub_channel[i].run_once =
+                                                plugin_node->plugin_info.collect_item[i].run_once;
+                        plugin_node->notify_info.sub_channel[i].interval =
+                                                plugin_node->plugin_info.collect_item[i].interval;
+                        plugin_node->notify_info.sub_channel[i].collect_data_func =
+                                                plugin_node->plugin_info.collect_item[i].collect_data_func;
+                        plugin_node->notify_info.sub_channel[i].run_once =
+                                                plugin_node->plugin_info.collect_item[i].run_once;
+                        plugin_node->notify_info.sub_channel[i].item.element_num =
+                                                plugin_node->plugin_info.collect_item[i].data_count;
+                        plugin_node->notify_info.sub_channel[i].item.data =
+                                        (mate_t*)malloc(sizeof(mate_t)*plugin_node->notify_info.sub_channel[i].item.element_num);
+                        if (plugin_node->notify_info.sub_channel[i].item.data == NULL) {
+                            plugin_node->notify_info.sub_channel[i].item.element_num = 0;
+                        }
                     }
                 }
+                list_add((struct list_head*)plugin_node, mgr->head);
+                mgr->plugins++;
+                mgr->load(mgr->context, &plugin_node->notify_info);
             }
-            list_add((struct list_head*)plugin_node, mgr->head);
-            mgr->plugins++;
-            mgr->load(mgr->context, &plugin_node->notify_info);
         }
-    }else {
+
+    } else {
         ret = SRM_ALLOC_SPACE_ERR;
-        ERROR_INFO("Alloc space of memory wrong.");
+        logging(LEVEL_WARN, "Alloc space of memory wrong.");
     }
 
     return ret;
@@ -250,7 +268,15 @@ int plugin_unload(plugin_mgr_t* mgr, plugin_t *plugin_node)
 {
     int ret = SRM_OK;
 
-    if (plugin_node != NULL) {
+    if (plugin_node == NULL) {
+        ret = SRM_ALLOC_SPACE_ERR;
+    }
+    if (plugin_node->load_flags & PLUGIN_LOAD_VERS_CHECK) {
+        struct list_head *node = &(plugin_node->node);
+        mgr->unload(mgr->context, plugin_node->id);
+        plugin_node->id = PLUGIN_MGR_INVALID_ID;
+        mgr->plugins--;
+        list_del(node);
         if (plugin_node->notify_info.sub_channel != NULL) {
             for (int i =0; i<plugin_node->notify_info.sub_metric_num; i++) {
                 if (plugin_node->notify_info.sub_channel[i].item.data != NULL) {
@@ -259,7 +285,6 @@ int plugin_unload(plugin_mgr_t* mgr, plugin_t *plugin_node)
                     plugin_node->notify_info.sub_channel[i].item.element_num = 0;
                 }
             }
-
             if (plugin_node->notify_info.sub_metric_num) {
                 free(plugin_node->notify_info.sub_channel);
                 plugin_node->notify_info.sub_channel = NULL;
@@ -269,25 +294,25 @@ int plugin_unload(plugin_mgr_t* mgr, plugin_t *plugin_node)
             plugin_node->notify_info.name[0] = '\0';
             plugin_node->notify_info.desc[0] = '\0';
         }
-        mgr->unload(mgr->context, plugin_node->id);
-        plugin_node->id = PLUGIN_MGR_INVALID_ID;
+    }
+    if (plugin_node->load_flags & PLUGIN_LOAD_INIT) {
         /* Release user space of itself, by plugin_info.collect_item variable */
         plugin_node->plugin_exit(&(plugin_node->plugin_info));
-        list_del((struct list_head*)plugin_node);
-        dlclose(plugin_node->handler);
-        /* value assign */
-        plugin_node->handler = NULL;
-        plugin_node->flag = false;
-        plugin_node->plugin_init = NULL;
-        plugin_node->plugin_exit = NULL;
-        plugin_node->plugin_info.desc = NULL;
-        plugin_node->plugin_info.name = NULL;
-        plugin_node->plugin_info.version = NULL;
-        plugin_node->plugin_info.collect_item = NULL;
-        plugin_node->plugin_info.item_count = 0;
-        plugin_node->unload_time = time(NULL);
-        mgr->plugins--;
     }
+    if (plugin_node->load_flags & PLUGIN_LOAD_DLOPEN) {
+        dlclose(plugin_node->handler);
+    }
+    /* value assign */
+    plugin_node->handler = NULL;
+    plugin_node->flag = false;
+    plugin_node->plugin_init = NULL;
+    plugin_node->plugin_exit = NULL;
+    plugin_node->plugin_info.desc = NULL;
+    plugin_node->plugin_info.name = NULL;
+    plugin_node->plugin_info.version = NULL;
+    plugin_node->plugin_info.collect_item = NULL;
+    plugin_node->plugin_info.item_count = 0;
+    plugin_node->unload_time = time(NULL);
 
     return ret;
 }

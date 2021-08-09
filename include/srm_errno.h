@@ -18,6 +18,5 @@
 #define SRM_DATA_BAD_ERR                (SRM_ERR_NO_BASE + 0x8)     /* Data occurred wrong. */
 
 
-
 #endif  /* __srm_errno_h__ */
 

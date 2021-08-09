@@ -18,6 +18,10 @@
 #define PLUGIN_MGR_DESC_LENGTH  1024
 #define PLUGIN_MGR_VERSION_LENGTH  64
 
+#define PLUGIN_LOAD_DLOPEN          (1UL<<0)
+#define PLUGIN_LOAD_VERS_CHECK      (1UL<<1)
+#define PLUGIN_LOAD_INIT            (1UL<<2)
+
 typedef int (*plugin_init_func_t)(plugin_info_t *);
 typedef void (*plugin_exit_func_t)(plugin_info_t *);
 
@@ -44,6 +48,7 @@ typedef struct plugin
     plugin_channel_t notify_info;
     time_t load_time;
     time_t unload_time;
+    uint64_t load_flags;
 }plugin_t;
 
 typedef struct plugin_mgr

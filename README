@@ -15,3 +15,12 @@ nc localhost 3200	//this for a human readable view
 nc localhost 3201	//this for a json format
 访问3200端口可以获得一个可视化的数据界面
 访问3201端口可以获得一个jason格式的数据
+
+[Develop]
+日志记录等级
+    LEVEL_ZERO，必须打印，无法屏蔽。
+    LEVEL_ERR，严重报错，一般只有在core出现问题时采用。
+    LEVEL_WARN，一般报错，不影响core的运行，但是有可能有些功能不可用。
+    LEVEL_PLUGIN，插件中记录日志采用该等级。
+    LEVEL_INFO，一般打印信息，release时带这些信息，可以在运行时选择打印。
+    LEVEL_DBG，一般调试信息，release时不带这些信息。

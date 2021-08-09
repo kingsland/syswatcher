@@ -7,9 +7,13 @@ type git
 if [ $? == 0 ];then
 	COMMIT=$(git log --oneline | head -n1 | awk '{ print $1 }')
 fi
-VERS=vers.h
-echo "#ifndef VERS_H" >$VERS
-echo "#define VERS_H" >>$VERS
-echo "char *time_info = \""$DATE"\";" >>$VERS
-echo "char *vers_info = \""$COMMIT"\";" >>$VERS
-echo "#endif" >>$VERS
+VERS_H=vers.h
+VERS_C=vers.c
+echo "#ifndef VERS_H" >$VERS_H
+echo "#define VERS_H" >>$VERS_H
+echo "extern char *time_info;" >>$VERS_H
+echo "extern char *vers_info;" >>$VERS_H
+echo "#endif" >>$VERS_H
+echo "#include \"vers.h\"" >$VERS_C
+echo "char *time_info = \""$DATE"\";" >>$VERS_C
+echo "char *vers_info = \""$COMMIT"\";" >>$VERS_C
