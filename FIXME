@@ -1,2 +1,1 @@
 nc 速度太快会丢数据
-systmctl stop syswatcher 有时候会卡住，并且后台打印calltrace，log不全。

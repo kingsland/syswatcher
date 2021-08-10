@@ -279,7 +279,6 @@ void _do_del_metric(struct metric_unit *unit)
     destroy_ti(unit->update_thread_info);
     list_for_each_safe(pos, n, &(unit->sub_node_head)) {
         subunit = container_of(pos, struct sub_metric_unit, sub_node);
-        printf("sub metric%s\n", subunit->sub_metric_name);
         logging(LEVEL_INFO, "  |-sub metric: %s\n", subunit->sub_metric_name);
         subunit->do_del_sub_metric(subunit);
     }
