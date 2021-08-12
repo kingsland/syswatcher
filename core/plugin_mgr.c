@@ -96,6 +96,7 @@ int plugin_parser(plugin_mgr_t* mgr, plugin_cmd_t *cmd)
 
     /* Extra dyanmic info and name of plugin */
     char *p = strrchr(cmd->path, '/');
+    logging(LEVEL_INFO, "plugin path: %s\n", cmd->path);
     if (p == NULL)
         p = (char*)(cmd->path);
     else
@@ -155,7 +156,6 @@ int plugin_parser(plugin_mgr_t* mgr, plugin_cmd_t *cmd)
                         plugin_unload(mgr, plugin_node);
                         free(plugin_node);
                         plugin_node = NULL;
-                        logging(LEVEL_WARN, "load plugin failed\n");
                     }
                 } else {
                     ret = SRM_ALLOC_SPACE_ERR;
@@ -249,7 +249,7 @@ int plugin_load(plugin_mgr_t* mgr, plugin_t *plugin_node)
 
     } else {
         ret = SRM_ALLOC_SPACE_ERR;
-        logging(LEVEL_WARN, "Alloc space of memory wrong.");
+        logging(LEVEL_WARN, "Alloc space of memory wrong.\n");
     }
 
     return ret;
