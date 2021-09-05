@@ -4,6 +4,7 @@ COMPILE_CONF=config
 MODULES=$(cat $COMPILE_CONF | grep -n "^\[.*\]$" | awk -F '[":"\\[\\]]' '{print $1":"$3}')
 MODULES_TO_LOAD=
 gen_conf() {
+    mkdir $CONF_PREFIX/plugins -p
 	ENDL=`cat $COMPILE_CONF | wc -l`
 	for MODULE in ${MODULES}
 	do
